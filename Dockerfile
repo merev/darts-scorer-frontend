@@ -3,16 +3,16 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# Enable Corepack so Yarn 4 is used according to "packageManager" in package.json
+# Use Corepack to respect "packageManager": "yarn@4.x"
 RUN corepack enable
 
-# Copy manifests first (so Docker can cache deps when they don’t change)
-COPY package.json yarn.lock ./
+# Copy manifests (and Yarn config)
+COPY package.json yarn.lock .yarnrc.yml ./
 
-# Copy the rest of the project (src, vite.config.ts, etc.)
+# Copy the rest of the project
 COPY . .
 
-# Install dependencies with Yarn 4 (uses PnP by default)
+# Install deps (Yarn 4, but using node_modules linker now)
 RUN yarn install --immutable
 
 # Build the Vite app
@@ -23,7 +23,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Tiny static server
+# Simple static server
 RUN yarn global add serve
 
 COPY --from=build /app/dist ./dist
