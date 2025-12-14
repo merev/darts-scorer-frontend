@@ -3,21 +3,24 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# Enable Corepack so the "packageManager" field works (Yarn 4.x)
+# Enable Corepack so Yarn 4 is used based on "packageManager" in package.json
 RUN corepack enable
 
-# Copy only the manifest/lockfile first for better Docker cache
-COPY package.json yarn.lock ./
+# Copy manifests and Yarn config
+COPY package.json yarn.lock .yarnrc.yml ./
+# If you have a .yarn directory (Yarn 4 typical), copy it too
+COPY .yarn .yarn
 
-# Use Yarn v4's preferred flag: --immutable
-RUN yarn install --immutable
-
-# Now copy the rest of your source
+# Copy the rest of the source (this is where your src, vite.config.ts etc come in)
 COPY . .
 
+# Now install dependencies (after all files are in place)
+RUN yarn install --immutable
+
+# Build the app
 RUN yarn build
 
-# Stage 2: lightweight runtime, no NGINX
+# Stage 2: runtime, static server (no NGINX in this container)
 FROM node:20-alpine
 
 WORKDIR /app
