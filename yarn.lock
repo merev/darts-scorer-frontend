@@ -1603,6 +1603,7 @@ __metadata:
     react-dom: "npm:^18.3.1"
     react-router-bootstrap: "npm:^0.26.3"
     react-router-dom: "npm:^7.10.1"
+    rollup: "npm:^4.53.3"
     typescript: "npm:^5.6.0"
     vite: "npm:^6.0.0"
   languageName: unknown
@@ -3080,7 +3081,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rollup@npm:^4.34.9":
+"rollup@npm:^4.34.9, rollup@npm:^4.53.3":
   version: 4.53.3
   resolution: "rollup@npm:4.53.3"
   dependencies:
