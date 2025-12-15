@@ -2,15 +2,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from './client';
 import type { Player } from '../types/darts';
 
+
 export function usePlayers() {
   return useQuery<Player[]>({
     queryKey: ['players'],
     queryFn: async () => {
       const res = await apiClient.get<Player[]>('/players');
       return res.data;
-    }
+    },
+    retry: false // fail fast during dev when backend is down
   });
 }
+
 
 export function useCreatePlayer() {
   const queryClient = useQueryClient();

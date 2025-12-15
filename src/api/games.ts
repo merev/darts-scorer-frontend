@@ -14,6 +14,7 @@ export function useGame(gameId: string) {
       const res = await apiClient.get<GameState>(`/games/${gameId}`);
       return res.data;
     },
+    retry: false, // fail fast during dev when backend is down
     enabled: !!gameId
   });
 }
