@@ -3,10 +3,16 @@ export type GameMode = 'X01' | 'Cricket' | 'AroundTheWorld';
 export interface Player {
   id: string;
   name: string;
-  nickname?: string;
-  createdAt?: string;
-  stats?: PlayerStatsSummary;
+  createdAt: string;
+  // stats will come later
+  stats?: {
+    matchesPlayed: number;
+    matchesWon: number;
+    averageScore: number;
+    bestCheckout?: number;
+  } | null;
 }
+
 
 export interface PlayerStatsSummary {
   matchesPlayed: number;
