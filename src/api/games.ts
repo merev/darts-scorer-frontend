@@ -7,6 +7,17 @@ export interface CreateGamePayload {
   playerIds: string[];
 }
 
+export function useGames() {
+  return useQuery<Game[]>({
+    queryKey: ['games'],
+    queryFn: async () => {
+      const res = await apiClient.get<Game[]>('/games');
+      return res.data;
+    },
+    retry: false,
+  });
+}
+
 export function useGame(gameId: string) {
   return useQuery<GameState>({
     queryKey: ['game', gameId],
@@ -14,8 +25,8 @@ export function useGame(gameId: string) {
       const res = await apiClient.get<GameState>(`/games/${gameId}`);
       return res.data;
     },
-    retry: false, // fail fast during dev when backend is down
-    enabled: !!gameId
+    retry: false,
+    enabled: !!gameId,
   });
 }
 
@@ -24,12 +35,12 @@ export function useCreateGame() {
 
   return useMutation({
     mutationFn: async (payload: CreateGamePayload) => {
-      const res = await apiClient.post<Game>('/games', payload);
+      const res = await apiClient.post<GameState>('/games', payload);
       return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['games'] });
-    }
+    },
   });
 }
 
@@ -44,7 +55,7 @@ export function usePostThrow(gameId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['game', gameId] });
       queryClient.invalidateQueries({ queryKey: ['games'] });
-    }
+    },
   });
 }
 
@@ -59,7 +70,6 @@ export function useUndoThrow(gameId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['game', gameId] });
       queryClient.invalidateQueries({ queryKey: ['games'] });
-    }
+    },
   });
 }
-
