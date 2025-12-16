@@ -79,6 +79,7 @@ export interface Game {
   status: GameStatus;
   config: GameConfig;
   players: GamePlayer[];
+  winnerId?: string | null;   // <-- NEW
 }
 
 export interface GameState {
@@ -92,4 +93,6 @@ export interface GameState {
   currentPlayerId: string;
   scores: PlayerScore[];
   history: Throw[];
+
+  winnerId?: string | null;   // <-- NEW (same as backend WinnerID)
 }

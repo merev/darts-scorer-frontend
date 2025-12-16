@@ -53,6 +53,7 @@ function StatsPage() {
                   <th>Mode</th>
                   <th>Players</th>
                   <th>Status</th>
+                  <th>Winner</th>
                 </tr>
               </thead>
               <tbody>
@@ -86,6 +87,11 @@ function StatsPage() {
                           Pending
                         </Badge>
                       )}
+                    </td>
+                    <td>
+                    {g.winnerId
+                        ? g.players.find(p => p.id === g.winnerId)?.name || 'Unknown'
+                        : '-'}
                     </td>
                   </tr>
                 ))}
