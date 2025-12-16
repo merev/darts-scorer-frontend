@@ -14,8 +14,9 @@ import GameScoreboard from '../components/games/GameScoreboard';
 import ThrowInput from '../components/games/ThrowInput';
 
 function GamePage() {
-  const { id } = useParams<{ id: string }>();
-  const gameId = id ?? '';
+  const params = useParams();
+  // Accept either /game/:id or /game/:gameId
+  const gameId = (params.id || params.gameId || '') as string;
 
   const {
     data: game,
