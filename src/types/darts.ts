@@ -1,10 +1,13 @@
+// -----------------------
+// BASIC TYPES
+// -----------------------
+
 export type GameMode = 'X01' | 'Cricket' | 'AroundTheWorld';
 
 export interface Player {
   id: string;
   name: string;
   createdAt: string;
-  // stats will come later
   stats?: {
     matchesPlayed: number;
     matchesWon: number;
@@ -13,13 +16,16 @@ export interface Player {
   } | null;
 }
 
-
 export interface PlayerStatsSummary {
   matchesPlayed: number;
   matchesWon: number;
-  averageScore: number; // points per dart or per visit, up to you
+  averageScore: number;
   bestCheckout?: number;
 }
+
+// -----------------------
+// GAME CONFIG
+// -----------------------
 
 export interface GameConfig {
   mode: GameMode;
@@ -27,26 +33,31 @@ export interface GameConfig {
   legs: number;
   sets: number;
   doubleOut: boolean;
-  bestOf?: number; // future use
+  bestOf?: number; // future: not used now
 }
 
+// Backend representation
 export type GameStatus = 'pending' | 'in_progress' | 'finished';
 
-export interface Game {
+// -----------------------
+// GAME PLAYER (backend)
+// -----------------------
+
+export interface GamePlayer {
   id: string;
-  createdAt: string;
-  status: GameStatus;
-  players: Player[];
-  config: GameConfig;
-  currentLeg: number;
-  currentSet: number;
+  name: string;
+  seat: number;
 }
+
+// -----------------------
+// SCORING STRUCTURES
+// -----------------------
 
 export interface PlayerScore {
   playerId: string;
-  remaining?: number; // for X01
+  remaining?: number;
   lastVisit?: number;
-  lastThreeDarts?: number[]; // optional
+  lastThreeDarts?: number[];
 }
 
 export interface Throw {
@@ -58,7 +69,26 @@ export interface Throw {
   createdAt: string;
 }
 
-export interface GameState extends Game {
+// -----------------------
+// GAME + GAMESTATE (aligned with backend)
+// -----------------------
+
+export interface Game {
+  id: string;
+  createdAt: string;
+  status: GameStatus;
+  config: GameConfig;
+  players: GamePlayer[];
+}
+
+export interface GameState {
+  id: string;
+  createdAt: string;
+  status: GameStatus;
+
+  config: GameConfig;
+  players: GamePlayer[];
+
   currentPlayerId: string;
   scores: PlayerScore[];
   history: Throw[];
