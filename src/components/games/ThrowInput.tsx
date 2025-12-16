@@ -1,69 +1,82 @@
 import { useState } from 'react';
-import { Form, Button, Row, Col, InputGroup } from 'react-bootstrap';
+import { Form, Button, InputGroup } from 'react-bootstrap';
 import type { GameState } from '../../types/darts';
 
 interface ThrowInputProps {
   game: GameState;
   onSubmit: (payload: { playerId: string; visitScore: number; dartsThrown: number }) => void;
-  submitting?: boolean;
+  submitting: boolean;
 }
 
 function ThrowInput({ game, onSubmit, submitting }: ThrowInputProps) {
-  const [visitScore, setVisitScore] = useState<number>(0);
+  const [visitScore, setVisitScore] = useState<number | ''>('');
   const [dartsThrown, setDartsThrown] = useState<number>(3);
 
-  const currentPlayer = game.players.find(p => p.id === game.currentPlayerId);
+  const isFinished = game.status === 'finished';
+
+  const currentPlayer = game.players.find((p) => p.id === game.currentPlayerId) ?? game.players[0];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentPlayer) return;
+    if (visitScore === '' || visitScore < 0 || visitScore > 180) return;
+    if (dartsThrown < 1 || dartsThrown > 3) return;
+
     onSubmit({
-      playerId: game.currentPlayerId,
-      visitScore,
-      dartsThrown
+      playerId: currentPlayer.id,
+      visitScore: Number(visitScore),
+      dartsThrown,
     });
-    setVisitScore(0);
+
+    // Reset only visit score; darts count usually stays at 3
+    setVisitScore('');
   };
 
   return (
     <Form onSubmit={handleSubmit}>
-      <Row className="align-items-end">
-        <Col xs={12}>
-          <Form.Label>Current Player</Form.Label>
-          <p className="fw-bold">{currentPlayer?.name}</p>
-        </Col>
-        <Col md={6}>
-          <Form.Group controlId="visitScore">
-            <Form.Label>Visit Score</Form.Label>
-            <Form.Control
-              type="number"
-              min={0}
-              max={180}
-              value={visitScore}
-              onChange={e => setVisitScore(Number(e.target.value))}
-            />
-          </Form.Group>
-        </Col>
-        <Col md={3}>
-          <Form.Group controlId="dartsThrown">
-            <Form.Label>Darts</Form.Label>
-            <Form.Select
-              value={dartsThrown}
-              onChange={e => setDartsThrown(Number(e.target.value))}
-            >
-              <option value={1}>1</option>
-              <option value={2}>2</option>
-              <option value={3}>3</option>
-            </Form.Select>
-          </Form.Group>
-        </Col>
-        <Col md={3} className="mt-3 mt-md-0">
-          <InputGroup>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? 'Saving...' : 'Add Visit'}
-            </Button>
-          </InputGroup>
-        </Col>
-      </Row>
+      <Form.Group className="mb-2">
+        <Form.Label className="fw-semibold">
+          Current player
+        </Form.Label>
+        <div>{currentPlayer ? currentPlayer.name : 'N/A'}</div>
+      </Form.Group>
+
+      <Form.Group className="mb-3" controlId="visitScore">
+        <Form.Label>Visit score (0–180)</Form.Label>
+        <InputGroup>
+          <Form.Control
+            type="number"
+            min={0}
+            max={180}
+            value={visitScore}
+            onChange={(e) => {
+              const val = e.target.value;
+              setVisitScore(val === '' ? '' : Number(val));
+            }}
+            disabled={submitting || isFinished}
+          />
+        </InputGroup>
+      </Form.Group>
+
+      <Form.Group className="mb-3" controlId="dartsThrown">
+        <Form.Label>Darts thrown (1–3)</Form.Label>
+        <Form.Select
+          value={dartsThrown}
+          onChange={(e) => setDartsThrown(Number(e.target.value))}
+          disabled={submitting || isFinished}
+        >
+          <option value={1}>1 dart</option>
+          <option value={2}>2 darts</option>
+          <option value={3}>3 darts</option>
+        </Form.Select>
+      </Form.Group>
+
+      <Button
+        type="submit"
+        disabled={submitting || isFinished || visitScore === ''}
+      >
+        {isFinished ? 'Game finished' : submitting ? 'Submitting...' : 'Submit visit'}
+      </Button>
     </Form>
   );
 }
