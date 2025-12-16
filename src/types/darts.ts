@@ -94,5 +94,29 @@ export interface GameState {
   scores: PlayerScore[];
   history: Throw[];
 
+  matchScore?: MatchScore;
   winnerId?: string | null;   // <-- NEW (same as backend WinnerID)
+}
+
+export interface LegScore {
+  legNumber: number;
+  startingScore: number;
+  scoresByPlayer: Record<string, number>; // playerId -> remaining score
+  winnerId?: string | null;
+  finishedAt?: string;
+}
+
+export interface SetScore {
+  setNumber: number;
+  legsToWin: number;
+  legs: LegScore[];
+  winnerId?: string | null;
+  finishedAt?: string;
+}
+
+export interface MatchScore {
+  setsToWin: number;
+  currentSetIndex: number; // index in sets[]
+  currentLegIndex: number; // index in sets[currentSetIndex].legs
+  sets: SetScore[];
 }

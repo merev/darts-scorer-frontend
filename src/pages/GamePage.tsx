@@ -1,3 +1,4 @@
+// src/pages/GamePage.tsx
 import { useParams } from 'react-router-dom';
 import {
   Container,
@@ -60,6 +61,11 @@ function GamePage() {
 
   const isFinished = game.status === 'finished';
 
+  const winnerPlayer =
+    game.winnerId != null
+      ? game.players.find((p) => p.id === game.winnerId) ?? null
+      : null;
+
   return (
     <Container className="py-3">
       <Row className="mb-3">
@@ -72,6 +78,18 @@ function GamePage() {
               : ''}
             {' • '}
             Status: {game.status}
+            {game.config.mode === 'X01' && (
+              <>
+                {' • '}
+                Format:{' '}
+                first to {game.config.sets} set
+                {game.config.sets > 1 ? 's' : ''},{' '}
+                first to {game.config.legs} leg
+                {game.config.legs > 1 ? 's' : ''} per set
+                {' • '}
+                Double out: {game.config.doubleOut ? 'On' : 'Off'}
+              </>
+            )}
           </div>
         </Col>
       </Row>
@@ -80,8 +98,17 @@ function GamePage() {
         <Row className="mb-3">
           <Col>
             <Alert variant="success" className="mb-0">
-              Game finished.
-              {/* You could compute and show the winner’s name here by checking scores.remaining === 0 */}
+              <Alert.Heading className="h6 mb-2">Game finished</Alert.Heading>
+              <div className="small mb-0">
+                {winnerPlayer ? (
+                  <>
+                    Winner:{' '}
+                    <strong>{winnerPlayer.name}</strong>
+                  </>
+                ) : (
+                  'Winner could not be determined from game data.'
+                )}
+              </div>
             </Alert>
           </Col>
         </Row>
