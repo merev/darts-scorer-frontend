@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
-import { Card, Row, Col, Container, Alert, Spinner } from 'react-bootstrap';
+import { Card, Row, Col, Container, Alert, Spinner, Button } from 'react-bootstrap';
 
-import { useGame, usePostThrow } from '../api/games';
+import { useGame, usePostThrow, useUndoThrow } from '../api/games';
 import Scoreboard from '../components/games/Scoreboard';
 import ThrowInput from '../components/games/ThrowInput';
 
@@ -24,6 +24,8 @@ function GamePage() {
   }) => {
     postThrow(payload);
   };
+
+  const { mutate: undoThrow, isPending: undoing } = useUndoThrow(gameId || '');
 
   return (
     <Container>
@@ -67,14 +69,25 @@ function GamePage() {
 
           <Col lg={4}>
             <Card>
-              <Card.Body>
+            <Card.Body>
                 <Card.Title>Enter score</Card.Title>
+
                 <ThrowInput
-                  game={game}
-                  onSubmit={handleSubmitThrow}
-                  submitting={posting}
+                game={game}
+                onSubmit={payload => postThrow(payload)}
+                submitting={posting}
                 />
-              </Card.Body>
+
+                <div className="d-flex justify-content-end mt-3">
+                <Button
+                    variant="outline-danger"
+                    disabled={undoing || posting || game.history.length === 0}
+                    onClick={() => undoThrow()}
+                >
+                    {undoing ? 'Undoing...' : 'Undo Last Throw'}
+                </Button>
+                </div>
+            </Card.Body>
             </Card>
           </Col>
         </Row>

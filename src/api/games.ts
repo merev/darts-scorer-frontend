@@ -47,3 +47,19 @@ export function usePostThrow(gameId: string) {
     }
   });
 }
+
+export function useUndoThrow(gameId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const res = await apiClient.post<GameState>(`/games/${gameId}/undo`);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['game', gameId] });
+      queryClient.invalidateQueries({ queryKey: ['games'] });
+    }
+  });
+}
+
