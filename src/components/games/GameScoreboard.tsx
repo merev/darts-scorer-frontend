@@ -77,8 +77,7 @@ function GameScoreboard({ game }: Props) {
             <div className="d-flex justify-content-between align-items-center mb-2">
               <small className="text-muted">
                 Set{' '}
-                {currentSet?.setNumber != null ? currentSet.setNumber : '-'} •
-                {' '}
+                {currentSet?.setNumber != null ? currentSet.setNumber : '-'} •{' '}
                 Leg{' '}
                 {currentLeg?.legNumber != null ? currentLeg.legNumber : '-'}
               </small>
@@ -124,7 +123,7 @@ function GameScoreboard({ game }: Props) {
           </>
         )}
 
-        {/* per-leg X01 scoreboard (what you already had) */}
+        {/* per-leg X01 scoreboard (what you had before) */}
         <Table striped bordered hover size="sm" responsive className="mb-0">
           <thead>
             <tr>
@@ -144,7 +143,9 @@ function GameScoreboard({ game }: Props) {
               const isMatchWinner =
                 isFinished && (remaining === 0 || game.winnerId === p.id);
               const isLegWinner =
-                !isFinished && currentLegWinnerId != null && currentLegWinnerId === p.id;
+                !isFinished &&
+                currentLegWinnerId != null &&
+                currentLegWinnerId === p.id;
 
               return (
                 <tr key={p.id} className={isCurrent ? 'table-active' : undefined}>
@@ -183,16 +184,11 @@ function GameScoreboard({ game }: Props) {
           </tbody>
         </Table>
 
-        {/* Optional: legs overview under the main table */}
+        {/* Optional: legs overview */}
         {matchScore && (
           <div className="mt-3">
             <small className="text-muted d-block mb-1">Legs overview</small>
-            <Table
-              bordered
-              size="sm"
-              responsive
-              className="mb-0"
-            >
+            <Table bordered size="sm" responsive className="mb-0">
               <thead>
                 <tr>
                   <th>Set</th>
