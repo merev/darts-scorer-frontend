@@ -14,6 +14,7 @@ export interface Player {
     averageScore: number;
     bestCheckout?: number;
   } | null;
+  avatarData?: string | null;
 }
 
 export interface PlayerStatsSummary {
