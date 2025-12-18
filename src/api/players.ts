@@ -1,32 +1,33 @@
+// src/api/players.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from './client';
+import axios from 'axios';
 import type { Player } from '../types/darts';
-
-export interface CreatePlayerPayload {
-  name: string;
-}
 
 export function usePlayers() {
   return useQuery<Player[]>({
     queryKey: ['players'],
     queryFn: async () => {
-      const res = await apiClient.get<Player[]>('/players');
-      return res.data;
+      const res = await axios.get('/api/players');
+      return res.data ?? [];
     },
-    retry: false,
   });
 }
 
+interface CreatePlayerPayload {
+  name: string;
+  avatarData?: string; // NEW
+}
+
 export function useCreatePlayer() {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
 
   return useMutation({
     mutationFn: async (payload: CreatePlayerPayload) => {
-      const res = await apiClient.post<Player>('/players', payload);
-      return res.data;
+      const res = await axios.post('/api/players', payload);
+      return res.data as Player;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['players'] });
+      qc.invalidateQueries({ queryKey: ['players'] });
     },
   });
 }
