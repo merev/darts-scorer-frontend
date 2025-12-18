@@ -166,8 +166,24 @@ function PlayersPage() {
     if (!window.confirm(`Delete player "${player.name}"? This cannot be undone.`)) {
       return;
     }
-    await deletePlayer(player.id);
+
+    try {
+      await deletePlayer(player.id); // this is mutateAsync from useDeletePlayer
+    } catch (err: any) {
+      const status = err?.response?.status ?? err?.status;
+
+      if (status === 409) {
+        // comes from ErrPlayerHasGames -> HTTP 409
+        alert('Cannot delete this player because they already have recorded games.');
+      } else if (status === 404) {
+        alert('Player not found (maybe already deleted).');
+      } else {
+        console.error('Failed to delete player', err);
+        alert('Failed to delete player. Please try again.');
+      }
+    }
   };
+
 
   const renderAvatarCircle = (player: Player) => {
     const dataUrl: string | undefined =
