@@ -9,6 +9,8 @@ import {
   Modal,
   Form,
   Spinner,
+  Toast,
+  ToastContainer,
 } from 'react-bootstrap';
 import {
   usePlayers,
@@ -70,6 +72,8 @@ interface ModalState {
   initialAvatar?: string | null;
 }
 
+type ToastVariant = 'success' | 'danger' | 'warning' | 'info';
+
 function PlayersPage() {
   const { data, isLoading, isError, error } = usePlayers();
   const players = Array.isArray(data) ? data : [];
@@ -78,7 +82,7 @@ function PlayersPage() {
   const { mutateAsync: updatePlayer, isPending: updating } = useUpdatePlayer();
   const { mutateAsync: deletePlayer, isPending: deleting } = useDeletePlayer();
 
-  // Modal state
+  // Create/Edit modal state
   const [modalState, setModalState] = useState<ModalState>({
     mode: 'create',
     visible: false,
@@ -89,11 +93,24 @@ function PlayersPage() {
 
   const [name, setName] = useState('');
   const [avatarData, setAvatarData] = useState<string | undefined>(undefined);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-
-
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Delete confirmation modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [playerToDelete, setPlayerToDelete] = useState<Player | null>(null);
+
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastVariant, setToastVariant] = useState<ToastVariant>('info');
+
+  const showToastMessage = (message: string, variant: ToastVariant = 'info') => {
+    setToastMessage(message);
+    setToastVariant(variant);
+    setShowToast(true);
+  };
+
+  // ----- Create / Edit modal -----
 
   const openCreateModal = () => {
     setModalState({
@@ -121,7 +138,7 @@ function PlayersPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const closeModal = () => {
+  const closeMainModal = () => {
     setModalState(prev => ({ ...prev, visible: false }));
     setName('');
     setAvatarData(undefined);
@@ -141,6 +158,7 @@ function PlayersPage() {
       setAvatarData(resized);
     } catch (err) {
       console.error('Failed to resize image', err);
+      showToastMessage('Could not process image. Please try another photo.', 'danger');
     }
   };
 
@@ -149,46 +167,67 @@ function PlayersPage() {
     const trimmed = name.trim();
     if (!trimmed) return;
 
-    if (modalState.mode === 'create') {
-      await createPlayer({
-        name: trimmed,
-        avatarData,
-      });
-    } else if (modalState.mode === 'edit' && modalState.playerId) {
-      await updatePlayer({
-        id: modalState.playerId,
-        name: trimmed,
-        avatarData: avatarData ?? null,
-      });
+    try {
+      if (modalState.mode === 'create') {
+        await createPlayer({
+          name: trimmed,
+          avatarData,
+        });
+        showToastMessage('Player created successfully.', 'success');
+      } else if (modalState.mode === 'edit' && modalState.playerId) {
+        await updatePlayer({
+          id: modalState.playerId,
+          name: trimmed,
+          avatarData: avatarData ?? null,
+        });
+        showToastMessage('Player updated successfully.', 'success');
+      }
+      closeMainModal();
+    } catch (err) {
+      console.error('Failed to save player', err);
+      showToastMessage('Failed to save player. Please try again.', 'danger');
     }
-
-    closeModal();
   };
 
-  const handleDelete = async (player: Player) => {
-    if (!window.confirm(`Delete player "${player.name}"? This cannot be undone.`)) {
-      return;
-    }
+  // ----- Delete confirmation flow -----
+
+  const requestDelete = (player: Player) => {
+    setPlayerToDelete(player);
+    setShowConfirmModal(true);
+  };
+
+  const handleCancelDelete = () => {
+    setShowConfirmModal(false);
+    setPlayerToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!playerToDelete) return;
 
     try {
-      await deletePlayer(player.id);
+      await deletePlayer(playerToDelete.id);
+      showToastMessage(`Player "${playerToDelete.name}" deleted.`, 'success');
     } catch (err: any) {
       const status = err?.response?.status ?? err?.status;
 
       if (status === 409) {
-        setErrorMessage("Cannot delete this player because they already have recorded games.");
-        setShowErrorModal(true);
+        showToastMessage(
+          'Cannot delete this player because they already have recorded games.',
+          'warning'
+        );
       } else if (status === 404) {
-        setErrorMessage("Player not found (maybe already deleted).");
-        setShowErrorModal(true);
+        showToastMessage('Player not found (maybe already deleted).', 'warning');
       } else {
-        console.error("Failed to delete player", err);
-        setErrorMessage("Failed to delete player. Please try again.");
-        setShowErrorModal(true);
+        console.error('Failed to delete player', err);
+        showToastMessage('Failed to delete player. Please try again.', 'danger');
       }
+    } finally {
+      setShowConfirmModal(false);
+      setPlayerToDelete(null);
     }
   };
 
+  // ----- Avatar rendering -----
 
   const renderAvatarCircle = (player: Player) => {
     const dataUrl: string | undefined =
@@ -282,8 +321,28 @@ function PlayersPage() {
     );
   };
 
+  // ----- JSX -----
+
   return (
     <Container className="py-3">
+      {/* Toasts */}
+      <ToastContainer position="top-end" className="p-3">
+        <Toast
+          bg={toastVariant}
+          onClose={() => setShowToast(false)}
+          show={showToast}
+          delay={4000}
+          autohide
+        >
+          <Toast.Header closeButton>
+            <strong className="me-auto">Players</strong>
+          </Toast.Header>
+          <Toast.Body className="text-white">
+            {toastMessage}
+          </Toast.Body>
+        </Toast>
+      </ToastContainer>
+
       {/* Header row */}
       <Row className="align-items-center mb-3">
         <Col>
@@ -332,7 +391,6 @@ function PlayersPage() {
                   <Card.Text className="fw-semibold mb-2">
                     {p.name}
                   </Card.Text>
-                  {/* Optional stats */}
                   {p.stats && (
                     <div className="text-muted small mb-2">
                       <div>Matches: {p.stats.matchesPlayed}</div>
@@ -358,7 +416,7 @@ function PlayersPage() {
                       variant="outline-danger"
                       size="sm"
                       disabled={deleting}
-                      onClick={() => handleDelete(p)}
+                      onClick={() => requestDelete(p)}
                     >
                       Delete
                     </Button>
@@ -373,7 +431,7 @@ function PlayersPage() {
       {/* Create / Edit Player Modal */}
       <Modal
         show={modalState.visible}
-        onHide={closeModal}
+        onHide={closeMainModal}
         centered
       >
         <Form onSubmit={handleSubmit}>
@@ -400,7 +458,7 @@ function PlayersPage() {
             </div>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" type="button" onClick={closeModal}>
+            <Button variant="secondary" type="button" onClick={closeMainModal}>
               Cancel
             </Button>
             <Button
@@ -415,22 +473,35 @@ function PlayersPage() {
         </Form>
       </Modal>
 
-    <Modal show={showErrorModal} onHide={() => setShowErrorModal(false)} centered>
-    <Modal.Header closeButton>
-        <Modal.Title>Error</Modal.Title>
-    </Modal.Header>
-
-    <Modal.Body>
-        <p className="mb-0">{errorMessage}</p>
-    </Modal.Body>
-
-    <Modal.Footer>
-        <Button variant="primary" onClick={() => setShowErrorModal(false)}>
-        OK
-        </Button>
-    </Modal.Footer>
-    </Modal>
-
+      {/* Delete confirmation modal */}
+      <Modal
+        show={showConfirmModal}
+        onHide={handleCancelDelete}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Delete Player</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>
+            Are you sure you want to delete{' '}
+            <strong>{playerToDelete?.name}</strong>? This action cannot be
+            undone.
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCancelDelete}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            onClick={handleConfirmDelete}
+            disabled={deleting}
+          >
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 }
