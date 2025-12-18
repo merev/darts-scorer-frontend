@@ -89,6 +89,9 @@ function PlayersPage() {
 
   const [name, setName] = useState('');
   const [avatarData, setAvatarData] = useState<string | undefined>(undefined);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -168,18 +171,20 @@ function PlayersPage() {
     }
 
     try {
-      await deletePlayer(player.id); // this is mutateAsync from useDeletePlayer
+      await deletePlayer(player.id);
     } catch (err: any) {
       const status = err?.response?.status ?? err?.status;
 
       if (status === 409) {
-        // comes from ErrPlayerHasGames -> HTTP 409
-        alert('Cannot delete this player because they already have recorded games.');
+        setErrorMessage("Cannot delete this player because they already have recorded games.");
+        setShowErrorModal(true);
       } else if (status === 404) {
-        alert('Player not found (maybe already deleted).');
+        setErrorMessage("Player not found (maybe already deleted).");
+        setShowErrorModal(true);
       } else {
-        console.error('Failed to delete player', err);
-        alert('Failed to delete player. Please try again.');
+        console.error("Failed to delete player", err);
+        setErrorMessage("Failed to delete player. Please try again.");
+        setShowErrorModal(true);
       }
     }
   };
@@ -409,6 +414,23 @@ function PlayersPage() {
           </Modal.Footer>
         </Form>
       </Modal>
+
+    <Modal show={showErrorModal} onHide={() => setShowErrorModal(false)} centered>
+    <Modal.Header closeButton>
+        <Modal.Title>Error</Modal.Title>
+    </Modal.Header>
+
+    <Modal.Body>
+        <p className="mb-0">{errorMessage}</p>
+    </Modal.Body>
+
+    <Modal.Footer>
+        <Button variant="primary" onClick={() => setShowErrorModal(false)}>
+        OK
+        </Button>
+    </Modal.Footer>
+    </Modal>
+
     </Container>
   );
 }
