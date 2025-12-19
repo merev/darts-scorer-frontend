@@ -13,6 +13,7 @@ import {
 import { useGame, usePostThrow, useUndoThrow } from '../api/games';
 import GameScoreboard from '../components/games/GameScoreboard';
 import ThrowInput from '../components/games/ThrowInput';
+import { useToast } from '../components/ToastProvider';
 
 function GamePage() {
   const params = useParams();
@@ -28,6 +29,8 @@ function GamePage() {
 
   const { mutate: postThrow, isPending: posting } = usePostThrow(gameId);
   const { mutate: undoThrow, isPending: undoing } = useUndoThrow(gameId);
+
+  const { showToast } = useToast();
 
   if (!gameId) {
     return (
@@ -47,6 +50,9 @@ function GamePage() {
   }
 
   if (isError || !game) {
+    // show toast as well as inline alert
+    showToast('Could not load game. See console for details.', 'danger');
+
     return (
       <Container className="py-4">
         <Alert variant="danger">
@@ -65,6 +71,31 @@ function GamePage() {
     game.winnerId != null
       ? game.players.find((p) => p.id === game.winnerId) ?? null
       : null;
+
+  // wrap postThrow to attach friendly onError/onSuccess behaviour
+  const handlePostThrow = (payload: any) => {
+    postThrow(payload, {
+      onSuccess() {
+        showToast('Throw recorded.', 'success');
+      },
+      onError(err: any) {
+        console.error('Failed to post throw', err);
+        showToast('Failed to post throw. Please try again.', 'danger');
+      },
+    });
+  };
+
+  const handleUndo = () => {
+    undoThrow(undefined, {
+      onSuccess() {
+        showToast('Last throw undone.', 'info');
+      },
+      onError(err: any) {
+        console.error('Failed to undo throw', err);
+        showToast('Failed to undo last throw.', 'danger');
+      },
+    });
+  };
 
   return (
     <Container className="py-3">
@@ -128,7 +159,7 @@ function GamePage() {
 
               <ThrowInput
                 game={game}
-                onSubmit={(payload) => postThrow(payload)}
+                onSubmit={(payload) => handlePostThrow(payload)}
                 submitting={posting}
               />
 
@@ -141,7 +172,7 @@ function GamePage() {
                     posting ||
                     game.history.length === 0
                   }
-                  onClick={() => undoThrow()}
+                  onClick={handleUndo}
                 >
                   {undoing ? 'Undoing...' : 'Undo Last Throw'}
                 </Button>

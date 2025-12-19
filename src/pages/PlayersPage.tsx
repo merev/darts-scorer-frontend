@@ -1,3 +1,4 @@
+// src/pages/PlayersPage.tsx
 import { useRef, useState } from 'react';
 import {
   Card,
@@ -9,8 +10,6 @@ import {
   Modal,
   Form,
   Spinner,
-  Toast,
-  ToastContainer,
 } from 'react-bootstrap';
 import {
   usePlayers,
@@ -19,6 +18,7 @@ import {
   useDeletePlayer,
 } from '../api/players';
 import type { Player } from '../types/darts';
+import { useToast } from '../components/ToastProvider';
 
 // Helper: resize/compress image before sending
 async function resizeImageToDataUrl(
@@ -72,8 +72,6 @@ interface ModalState {
   initialAvatar?: string | null;
 }
 
-type ToastVariant = 'success' | 'danger' | 'warning' | 'info';
-
 function PlayersPage() {
   const { data, isLoading, isError, error } = usePlayers();
   const players = Array.isArray(data) ? data : [];
@@ -82,7 +80,9 @@ function PlayersPage() {
   const { mutateAsync: updatePlayer, isPending: updating } = useUpdatePlayer();
   const { mutateAsync: deletePlayer, isPending: deleting } = useDeletePlayer();
 
-  // Create/Edit modal state
+  const { showToast } = useToast();
+
+  // Modal state
   const [modalState, setModalState] = useState<ModalState>({
     mode: 'create',
     visible: false,
@@ -93,24 +93,8 @@ function PlayersPage() {
 
   const [name, setName] = useState('');
   const [avatarData, setAvatarData] = useState<string | undefined>(undefined);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  // Delete confirmation modal state
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [playerToDelete, setPlayerToDelete] = useState<Player | null>(null);
-
-  // Toast state
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastVariant, setToastVariant] = useState<ToastVariant>('info');
-
-  const showToastMessage = (message: string, variant: ToastVariant = 'info') => {
-    setToastMessage(message);
-    setToastVariant(variant);
-    setShowToast(true);
-  };
-
-  // ----- Create / Edit modal -----
 
   const openCreateModal = () => {
     setModalState({
@@ -138,7 +122,7 @@ function PlayersPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const closeMainModal = () => {
+  const closeModal = () => {
     setModalState(prev => ({ ...prev, visible: false }));
     setName('');
     setAvatarData(undefined);
@@ -158,7 +142,7 @@ function PlayersPage() {
       setAvatarData(resized);
     } catch (err) {
       console.error('Failed to resize image', err);
-      showToastMessage('Could not process image. Please try another photo.', 'danger');
+      showToast('Could not process image. Please try another photo.', 'danger');
     }
   };
 
@@ -173,23 +157,25 @@ function PlayersPage() {
           name: trimmed,
           avatarData,
         });
-        showToastMessage('Player created successfully.', 'success');
+        showToast('Player created successfully.', 'success');
       } else if (modalState.mode === 'edit' && modalState.playerId) {
         await updatePlayer({
           id: modalState.playerId,
           name: trimmed,
           avatarData: avatarData ?? null,
         });
-        showToastMessage('Player updated successfully.', 'success');
+        showToast('Player updated successfully.', 'success');
       }
-      closeMainModal();
+      closeModal();
     } catch (err) {
       console.error('Failed to save player', err);
-      showToastMessage('Failed to save player. Please try again.', 'danger');
+      showToast('Failed to save player. Please try again.', 'danger');
     }
   };
 
-  // ----- Delete confirmation flow -----
+  // Delete confirmation flow using a modal
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [playerToDelete, setPlayerToDelete] = useState<Player | null>(null);
 
   const requestDelete = (player: Player) => {
     setPlayerToDelete(player);
@@ -206,28 +192,23 @@ function PlayersPage() {
 
     try {
       await deletePlayer(playerToDelete.id);
-      showToastMessage(`Player "${playerToDelete.name}" deleted.`, 'success');
+      showToast(`Player "${playerToDelete.name}" deleted.`, 'success');
     } catch (err: any) {
       const status = err?.response?.status ?? err?.status;
 
       if (status === 409) {
-        showToastMessage(
-          'Cannot delete this player because they already have recorded games.',
-          'warning'
-        );
+        showToast('Cannot delete this player because they already have recorded games.', 'warning');
       } else if (status === 404) {
-        showToastMessage('Player not found (maybe already deleted).', 'warning');
+        showToast('Player not found (maybe already deleted).', 'warning');
       } else {
         console.error('Failed to delete player', err);
-        showToastMessage('Failed to delete player. Please try again.', 'danger');
+        showToast('Failed to delete player. Please try again.', 'danger');
       }
     } finally {
       setShowConfirmModal(false);
       setPlayerToDelete(null);
     }
   };
-
-  // ----- Avatar rendering -----
 
   const renderAvatarCircle = (player: Player) => {
     const dataUrl: string | undefined =
@@ -321,28 +302,8 @@ function PlayersPage() {
     );
   };
 
-  // ----- JSX -----
-
   return (
     <Container className="py-3">
-      {/* Toasts */}
-      <ToastContainer position="top-end" className="p-3">
-        <Toast
-          bg={toastVariant}
-          onClose={() => setShowToast(false)}
-          show={showToast}
-          delay={4000}
-          autohide
-        >
-          <Toast.Header closeButton>
-            <strong className="me-auto">Players</strong>
-          </Toast.Header>
-          <Toast.Body className="text-white">
-            {toastMessage}
-          </Toast.Body>
-        </Toast>
-      </ToastContainer>
-
       {/* Header row */}
       <Row className="align-items-center mb-3">
         <Col>
@@ -431,7 +392,7 @@ function PlayersPage() {
       {/* Create / Edit Player Modal */}
       <Modal
         show={modalState.visible}
-        onHide={closeMainModal}
+        onHide={closeModal}
         centered
       >
         <Form onSubmit={handleSubmit}>
@@ -458,7 +419,7 @@ function PlayersPage() {
             </div>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" type="button" onClick={closeMainModal}>
+            <Button variant="secondary" type="button" onClick={closeModal}>
               Cancel
             </Button>
             <Button
