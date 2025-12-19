@@ -82,7 +82,7 @@ function PlayersPage() {
 
   const { showToast } = useToast();
 
-  // Modal state
+  // Modal state (create/edit)
   const [modalState, setModalState] = useState<ModalState>({
     mode: 'create',
     visible: false,
@@ -93,8 +93,13 @@ function PlayersPage() {
 
   const [name, setName] = useState('');
   const [avatarData, setAvatarData] = useState<string | undefined>(undefined);
-
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Confirmation modal (for delete)
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [playerToDelete, setPlayerToDelete] = useState<Player | null>(null);
+
+  // ---- Helpers ----
 
   const openCreateModal = () => {
     setModalState({
@@ -122,7 +127,7 @@ function PlayersPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const closeModal = () => {
+  const closeMainModal = () => {
     setModalState(prev => ({ ...prev, visible: false }));
     setName('');
     setAvatarData(undefined);
@@ -166,17 +171,15 @@ function PlayersPage() {
         });
         showToast('Player updated successfully.', 'success');
       }
-      closeModal();
+      closeMainModal();
     } catch (err) {
       console.error('Failed to save player', err);
       showToast('Failed to save player. Please try again.', 'danger');
     }
   };
 
-  // Delete confirmation flow using a modal
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [playerToDelete, setPlayerToDelete] = useState<Player | null>(null);
-
+  // Request delete from inside modal or other places.
+  // This will show the confirmation dialog.
   const requestDelete = (player: Player) => {
     setPlayerToDelete(player);
     setShowConfirmModal(true);
@@ -187,12 +190,18 @@ function PlayersPage() {
     setPlayerToDelete(null);
   };
 
+  // Called when the user confirms deletion in the confirmation modal.
+  // After delete we also close the edit modal if it was open.
   const handleConfirmDelete = async () => {
     if (!playerToDelete) return;
 
     try {
       await deletePlayer(playerToDelete.id);
       showToast(`Player "${playerToDelete.name}" deleted.`, 'success');
+      // close edit modal if the deleted player is currently being edited
+      if (modalState.playerId === playerToDelete.id) {
+        closeMainModal();
+      }
     } catch (err: any) {
       const status = err?.response?.status ?? err?.status;
 
@@ -210,6 +219,15 @@ function PlayersPage() {
     }
   };
 
+  // Keyboard accessibility: Enter or Space opens the card
+  const handleCardKeyDown = (e: React.KeyboardEvent, player: Player) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openEditModal(player);
+    }
+  };
+
+  // Avatar rendering helpers
   const renderAvatarCircle = (player: Player) => {
     const dataUrl: string | undefined =
       (player.avatarData as string | undefined) ?? undefined;
@@ -302,6 +320,7 @@ function PlayersPage() {
     );
   };
 
+  // ---- JSX ----
   return (
     <Container className="py-3">
       {/* Header row */}
@@ -315,9 +334,7 @@ function PlayersPage() {
           )}
         </Col>
         <Col className="text-end">
-          <Button onClick={openCreateModal}>
-            +
-          </Button>
+          <Button onClick={openCreateModal}>+</Button>
         </Col>
       </Row>
 
@@ -330,9 +347,7 @@ function PlayersPage() {
       )}
 
       {!isLoading && isError && (
-        <Alert variant="danger">
-          Could not load players from the backend.
-        </Alert>
+        <Alert variant="danger">Could not load players from the backend.</Alert>
       )}
 
       {!isLoading && !isError && players.length === 0 && (
@@ -341,47 +356,29 @@ function PlayersPage() {
         </Alert>
       )}
 
-      {/* Players as cards */}
+      {/* Players as borderless, transparent cards (entire card clickable) */}
       {!isLoading && !isError && players.length > 0 && (
         <Row xs={3} md={5} lg={6} className="g-3">
           {players.map((p) => (
             <Col key={p.id}>
-              <Card className="h-100 text-center">
+              <Card
+                className="h-100 text-center border-0 bg-transparent"
+                role="button"
+                tabIndex={0}
+                onClick={() => openEditModal(p)}
+                onKeyDown={(e) => handleCardKeyDown(e, p)}
+                style={{ cursor: 'pointer' }}
+                aria-label={`Edit player ${p.name}`}
+              >
                 <Card.Body>
                   {renderAvatarCircle(p)}
-                  <Card.Text className="fw-semibold mb-2">
-                    {p.name}
-                  </Card.Text>
+                  <Card.Text className="fw-semibold mb-1">{p.name}</Card.Text>
                   {p.stats && (
-                    <div className="text-muted small mb-2">
+                    <div className="text-muted small mb-1">
                       <div>Matches: {p.stats.matchesPlayed}</div>
                       <div>Wins: {p.stats.matchesWon}</div>
-                      <div>
-                        Avg:{' '}
-                        {p.stats.averageScore != null
-                          ? p.stats.averageScore.toFixed(2)
-                          : '-'}
-                      </div>
                     </div>
                   )}
-
-                  <div className="d-flex justify-content-center gap-2 mt-2">
-                    <Button
-                      variant="outline-secondary"
-                      size="sm"
-                      onClick={() => openEditModal(p)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline-danger"
-                      size="sm"
-                      disabled={deleting}
-                      onClick={() => requestDelete(p)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
                 </Card.Body>
               </Card>
             </Col>
@@ -389,12 +386,8 @@ function PlayersPage() {
         </Row>
       )}
 
-      {/* Create / Edit Player Modal */}
-      <Modal
-        show={modalState.visible}
-        onHide={closeModal}
-        centered
-      >
+      {/* Create / Edit Player Modal (contains Delete button) */}
+      <Modal show={modalState.visible} onHide={closeMainModal} centered>
         <Form onSubmit={handleSubmit}>
           <Modal.Header closeButton>
             <Modal.Title>
@@ -418,47 +411,58 @@ function PlayersPage() {
               If no photo is taken, an avatar with the player's initial will be used.
             </div>
           </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" type="button" onClick={closeModal}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={(creating || updating) || !name.trim()}
-            >
-              {modalState.mode === 'create'
-                ? creating ? 'Saving...' : 'Save'
-                : updating ? 'Updating...' : 'Update'}
-            </Button>
+          <Modal.Footer className="d-flex justify-content-between">
+            {/* Delete button visible only when editing an existing player */}
+            {modalState.mode === 'edit' ? (
+              <Button
+                variant="outline-danger"
+                onClick={() => {
+                  // open confirmation modal for the player being edited
+                  if (modalState.playerId) {
+                    const player = players.find((x) => x.id === modalState.playerId) ?? null;
+                    if (player) {
+                      setPlayerToDelete(player);
+                      setShowConfirmModal(true);
+                    }
+                  }
+                }}
+              >
+                Delete
+              </Button>
+            ) : (
+              <div /> // spacer to keep Save button right-aligned
+            )}
+
+            <div>
+              <Button variant="secondary" type="button" onClick={closeMainModal} className="me-2">
+                Cancel
+              </Button>
+              <Button type="submit" disabled={(creating || updating) || !name.trim()}>
+                {modalState.mode === 'create'
+                  ? creating ? 'Saving...' : 'Save'
+                  : updating ? 'Updating...' : 'Update'}
+              </Button>
+            </div>
           </Modal.Footer>
         </Form>
       </Modal>
 
       {/* Delete confirmation modal */}
-      <Modal
-        show={showConfirmModal}
-        onHide={handleCancelDelete}
-        centered
-      >
+      <Modal show={showConfirmModal} onHide={handleCancelDelete} centered>
         <Modal.Header closeButton>
           <Modal.Title>Delete Player</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <p>
-            Are you sure you want to delete{' '}
-            <strong>{playerToDelete?.name}</strong>? This action cannot be
-            undone.
+            Are you sure you want to delete <strong>{playerToDelete?.name}</strong>? This action
+            cannot be undone.
           </p>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCancelDelete}>
             Cancel
           </Button>
-          <Button
-            variant="danger"
-            onClick={handleConfirmDelete}
-            disabled={deleting}
-          >
+          <Button variant="danger" onClick={handleConfirmDelete} disabled={deleting}>
             {deleting ? 'Deleting...' : 'Delete'}
           </Button>
         </Modal.Footer>
