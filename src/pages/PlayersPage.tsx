@@ -235,25 +235,13 @@ function PlayersPage() {
 
     return (
       <div className="d-flex justify-content-center mb-2">
-        <div
-          className="rounded-circle overflow-hidden d-flex align-items-center justify-content-center"
-          style={{
-            width: 80,
-            height: 80,
-            backgroundColor: '#e9ecef',
-            border: '2px solid #dee2e6',
-          }}
-        >
+        <div className="player-avatar" aria-hidden>
           {dataUrl ? (
-            <img
-              src={dataUrl}
-              alt={player.name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
+            <img src={dataUrl} alt={player.name} />
           ) : (
             <span
               style={{
-                fontSize: '1.5rem',
+                fontSize: '1.25rem',
                 fontWeight: 600,
                 color: '#495057',
               }}
@@ -266,6 +254,7 @@ function PlayersPage() {
     );
   };
 
+  // Avatar preview inside the modal (bigger)
   const renderModalAvatarPreview = () => {
     const initial = name.trim()
       ? name.trim().charAt(0).toUpperCase()
@@ -273,21 +262,9 @@ function PlayersPage() {
 
     return (
       <div className="d-flex flex-column align-items-center mb-3">
-        <div
-          className="rounded-circle overflow-hidden d-flex align-items-center justify-content-center mb-2"
-          style={{
-            width: 96,
-            height: 96,
-            backgroundColor: '#e9ecef',
-            border: '2px solid #dee2e6',
-          }}
-        >
+        <div className="player-avatar player-avatar--preview mb-2" aria-hidden>
           {avatarData ? (
-            <img
-              src={avatarData}
-              alt="Preview"
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
+            <img src={avatarData} alt="Preview" />
           ) : (
             <span
               style={{
@@ -300,6 +277,7 @@ function PlayersPage() {
             </span>
           )}
         </div>
+
         <Button
           variant="outline-secondary"
           size="sm"
@@ -308,6 +286,7 @@ function PlayersPage() {
         >
           Take Photo
         </Button>
+
         <Form.Control
           type="file"
           accept="image/*"

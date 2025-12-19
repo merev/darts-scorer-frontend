@@ -21,3 +21,42 @@ body,
 .app-footer {
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
+
+/* avatars: fluid, circular, responsive */
+.player-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e9ecef;
+  border: 2px solid #dee2e6;
+  flex: 0 0 auto;
+}
+
+.player-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* modal preview slightly larger */
+.player-avatar--preview {
+  width: 88px;
+  height: 88px;
+}
+
+/* On very small viewports make avatars smaller so they don't become ellipses inside narrow columns */
+@media (max-width: 420px) {
+  .player-avatar {
+    width: 56px;
+    height: 56px;
+  }
+  .player-avatar--preview {
+    width: 72px;
+    height: 72px;
+  }
+}
