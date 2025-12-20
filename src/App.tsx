@@ -1,5 +1,5 @@
-import Container from 'react-bootstrap/Container'; // still used in footer
-import { Routes, Route } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Route, Routes } from 'react-router-dom';
 
 import AppNavbar from './components/layout/AppNavbar';
 import HomePage from './pages/HomePage';
@@ -12,9 +12,22 @@ import AppFooter from './components/layout/AppFooter';
 import './App.css';
 
 function App() {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  // Optional: keep body class too (useful for global things like modals)
+  useEffect(() => {
+    document.body.classList.remove('theme-light', 'theme-dark');
+    document.body.classList.add(`theme-${theme}`);
+  }, [theme]);
+
   return (
-    <div className="app-root">
-      <AppNavbar />
+    <div className={`app-root theme-${theme}`}>
+      <AppNavbar
+        theme={theme}
+        onToggleTheme={() =>
+          setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+        }
+      />
 
       <main className="app-main">
         <Routes>
