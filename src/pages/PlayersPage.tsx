@@ -235,7 +235,7 @@ function PlayersPage() {
     const initial = (player.name || '?').charAt(0).toUpperCase();
 
     return (
-      <div className="d-flex justify-content-center mb-2">
+      <div className="d-flex justify-content-center mb-1">
         <div className="player-avatar" aria-hidden>
           {dataUrl ? (
             <img src={dataUrl} alt={player.name} />
@@ -338,7 +338,7 @@ function PlayersPage() {
 
       {/* Players as borderless, transparent cards (entire card clickable) */}
       {!isLoading && !isError && players.length > 0 && (
-        <Row xs={3} md={5} lg={6} className="g-2">
+        <Row xs={3} md={5} lg={6} className="g-1 g-md-2">
           {players.map((p) => (
             <Col key={p.id}>
               <Card
@@ -352,7 +352,14 @@ function PlayersPage() {
               >
                 <Card.Body>
                   {renderAvatarCircle(p)}
-                  <Card.Text className="fw-semibold mb-1">
+                  <Card.Text
+                    className="mb-0"
+                    style={{
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.02em',
+                    }}
+                  >
                     {p.name.toUpperCase()}
                   </Card.Text>
                   {p.stats && (
