@@ -81,4 +81,27 @@ body,
   }
 }
 
+/* --- Hard center the delete modal on mobile (fixes iOS/Android viewport quirks) --- */
+.delete-player-modal-parent.modal {
+  position: fixed !important;
+  inset: 0 !important;
+  height: 100dvh !important;            /* dynamic viewport height (mobile-safe) */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 12px !important;          /* keep some side margin on narrow phones */
+}
+
+/* optional: if browser doesn't support dvh, fallback */
+@supports not (height: 100dvh) {
+  .delete-player-modal-parent.modal {
+    height: 100vh !important;
+  }
+}
+
+/* keep the dialog from adding its own margins that can shift it */
+.delete-player-modal-parent .modal-dialog {
+  margin: 0 !important;
+}
+
 

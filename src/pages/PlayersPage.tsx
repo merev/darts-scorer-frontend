@@ -437,6 +437,7 @@ function PlayersPage() {
         centered
         size="sm"
         dialogClassName="delete-player-modal"
+        className="delete-player-modal-parent"
       >
         <Modal.Header closeButton>
           <Modal.Title>Delete Player</Modal.Title>
