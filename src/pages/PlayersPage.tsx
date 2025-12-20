@@ -385,10 +385,6 @@ function PlayersPage() {
                 placeholder="Enter player name"
               />
             </Form.Group>
-
-            <div className="text-muted small">
-              If no photo is taken, an avatar with the player's initial will be used.
-            </div>
           </Modal.Body>
           <Modal.Footer className="d-flex justify-content-between">
             {/* Delete button visible only when editing an existing player */}
