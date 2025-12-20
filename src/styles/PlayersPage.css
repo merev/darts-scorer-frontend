@@ -40,8 +40,8 @@
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background-color: #0b0c0f !important;
-  border-color: #0b0c0f !important;
+  background-color: #495057 !important;
+  border-color: #495057 !important;
 }
 
 /* Grid */
@@ -342,4 +342,19 @@
 
 .delete-player-modal-parent .modal-dialog {
   margin: 0 !important;
+}
+
+/* ----------------------------------------------------
+   Players grid: make tiles blend with page background
+   (fixes mismatch with app theme card background)
+   ---------------------------------------------------- */
+
+/* Your global theme styles apply to .app-main .card (bg-elev-2).
+   On Players page we want the player "cards" to be transparent,
+   so the grid matches the page background exactly. */
+.players-page .players-card,
+.players-page .players-card .card-body {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
 }
