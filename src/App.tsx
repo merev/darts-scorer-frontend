@@ -10,6 +10,7 @@ import StatsPage from './pages/StatsPage';
 import AppFooter from './components/layout/AppFooter';
 
 import './App.css';
+import './themes.css'
 
 function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');

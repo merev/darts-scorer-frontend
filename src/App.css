@@ -10,23 +10,15 @@ body,
   flex-direction: column;
 }
 
-/* Theme should affect the actual app container */
-.app-root.theme-light {
-  color: #111111;
-  background: radial-gradient(circle at top, #fdfdfd 0, #f5f6fa 45%, #edf0f4 100%);
-}
-
-.app-root.theme-dark {
-  color: #eaeaea;
-  background: radial-gradient(circle at top, #1a1d22 0, #121418 45%, #0b0c0f 100%);
-}
-
+/* -------------------------
+   MAIN LAYOUT
+   ------------------------- */
 
 .app-main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 1.5rem 1rem; /* left & right added */
+  padding: 1.5rem 1rem;
 }
 
 /* Extra breathing room on larger screens */
@@ -36,9 +28,14 @@ body,
   }
 }
 
+/* Footer must stay unchanged by theme (your existing style) */
 .app-footer {
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
+
+/* -------------------------
+   HEADER / NAVBAR (excluded from theming)
+   ------------------------- */
 
 /* Smooth active color transitions for header links */
 .app-navbar .nav-link,
@@ -59,17 +56,14 @@ body,
   outline: none !important;
 }
 
-/* =========================
-   NAVBAR ACTIONS
-   ========================= */
-
+/* Navbar actions container (theme toggle + burger) */
 .navbar-actions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-/* Theme toggle button */
+/* Theme toggle button (inside header, but visually unchanged by theme) */
 .theme-toggle-btn {
   background: transparent;
   border: none;
@@ -92,15 +86,122 @@ body,
   box-shadow: none;
 }
 
+/* Always light icon */
 .theme-toggle-btn svg {
   width: 18px;
   height: 18px;
   display: block;
+  color: #ffffff;
 }
 
-.theme-toggle-btn svg {
-  width: 18px;
-  height: 18px;
-  display: block;
-  color: #ffffff; /* always light */
+/* -------------------------
+   THEME APPLICATION
+   (ONLY inside .app-main)
+   ------------------------- */
+
+/* Paint the page background only for the main content area */
+.app-root.theme-light .app-main {
+  background: radial-gradient(circle at top, #fdfdfd 0, #f5f6fa 45%, #edf0f4 100%);
+  color: var(--text);
+}
+
+.app-root.theme-dark .app-main {
+  background: radial-gradient(circle at top, #1a1d22 0, #121418 45%, #0b0c0f 100%);
+  color: var(--text);
+}
+
+/* Base theme surface + text (main content only) */
+.app-main {
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+/* Muted text inside main */
+.app-main .text-muted,
+.app-main .muted {
+  color: var(--text-muted) !important;
+}
+
+/* Common containers inside main */
+.app-main .card,
+.app-main .list-group-item,
+.app-main .dropdown-menu,
+.app-main .popover,
+.app-main .toast,
+.app-main .offcanvas,
+.app-main .modal-content {
+  background-color: var(--bg-elev-2) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+  box-shadow: var(--shadow);
+}
+
+/* Borders inside main */
+.app-main hr,
+.app-main .border,
+.app-main .border-top,
+.app-main .border-bottom,
+.app-main .border-start,
+.app-main .border-end {
+  border-color: var(--border) !important;
+}
+
+/* Links inside main should follow text color (unless you style them explicitly elsewhere) */
+.app-main a {
+  color: inherit;
+}
+
+/* -------------------------
+   BOOTSTRAP OVERRIDES
+   (ONLY inside .app-main)
+   ------------------------- */
+
+/* Put Bootstrap variables on .app-main so header/footer aren't affected */
+.app-main {
+  --bs-body-bg: var(--bg);
+  --bs-body-color: var(--text);
+
+  --bs-border-color: var(--border);
+  --bs-secondary-color: var(--text-muted);
+
+  --bs-card-bg: var(--bg-elev-2);
+  --bs-card-color: var(--text);
+
+  --bs-modal-bg: var(--bg-elev-2);
+  --bs-modal-color: var(--text);
+
+  --bs-dropdown-bg: var(--bg-elev-2);
+  --bs-dropdown-color: var(--text);
+  --bs-dropdown-link-color: var(--text);
+  --bs-dropdown-link-hover-bg: rgba(127, 127, 127, 0.12);
+
+  --bs-form-control-bg: var(--bg-elev-2);
+  --bs-form-control-color: var(--text);
+  --bs-form-control-border-color: var(--border);
+  --bs-form-select-bg: var(--bg-elev-2);
+
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--text);
+  --bs-table-border-color: var(--border);
+}
+
+/* Form placeholder + focus inside main */
+.app-main .form-control::placeholder,
+.app-main .form-select::placeholder {
+  color: var(--text-muted);
+}
+
+.app-main .form-control:focus,
+.app-main .form-select:focus {
+  border-color: rgba(13, 110, 253, 0.6);
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.2);
+}
+
+/* -------------------------
+   OPTIONAL: smooth theme switch (main only)
+   ------------------------- */
+
+.app-main,
+.app-main * {
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
 }
