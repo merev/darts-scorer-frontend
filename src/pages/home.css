@@ -60,14 +60,6 @@
   border-color: var(--btn-hover-border) !important;
 }
 
-/* Optional: a tiny "lift" to make hover feel nice */
-.home-btn.primary:hover,
-.home-btn.secondary:hover,
-.home-btn.tertiary:hover,
-.home-btn.subtle:hover {
-  transform: translateY(-1px);
-}
-
 /* Make transition smooth */
 .home-btn.primary,
 .home-btn.secondary,
