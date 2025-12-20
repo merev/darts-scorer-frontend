@@ -18,7 +18,7 @@
 
 .home-logo-icon {
   font-size: 3rem;
-  color: #0d6efd;
+  color: var(--primary);
   margin-bottom: 0.75rem;
 }
 
@@ -30,7 +30,7 @@
 
 .home-subtitle {
   font-size: 1rem;
-  color: #6c757d;
+  color: var(--text-muted);
 }
 
 /* BUTTONS */
@@ -40,36 +40,23 @@
   border-radius: 999px;
 }
 
+/* Theme-aware surfaces (work in both light and dark) */
 .home-btn.primary,
 .home-btn.secondary,
 .home-btn.tertiary,
 .home-btn.subtle {
-  color: #212529;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-color: #dee2e6;
+  color: var(--text);
+  background-color: var(--bg-elev-2);
+  border: 1px solid var(--border);
 }
 
-.home-btn.primary:hover,
+.home-btn.primary:hover
 .home-btn.secondary:hover,
 .home-btn.tertiary:hover,
 .home-btn.subtle:hover {
-  color: #212529;
-  background-color: #ffffff;
-  border-color: #ced4da;
-}
-
-/* FOOTER NOTE */
-
-.home-footer-note {
-  padding: 0.75rem 0 1.25rem;
-  border-top: 1px solid #dee2e6;
-}
-
-.home-footer-text {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #868e96;
-  text-align: center;
+  color: var(--text);
+  background-color: var(--bg-elev-1);
+  border-color: var(--border);
 }
 
 /* RESPONSIVE */
