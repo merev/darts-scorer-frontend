@@ -22,7 +22,7 @@
 .players-title {
   font-weight: 800;
   letter-spacing: 0.08em;
-  font-size: 1.15rem;
+  font-size: 1.5rem;
   text-transform: uppercase;
   line-height: 1.1;
 }
@@ -34,18 +34,16 @@
 }
 
 /* Enhanced + button */
-.players-add-btn {
-  width: 44px;
-  height: 44px;
+.players-add-btn  {
+  width: 42px !important;
+  height: 42px !important;
   border-radius: 12px;
-  font-size: 1.6rem;
-  font-weight: 700;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  font-size: 2rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: #495057 !important;
+  border-color: #495057 !important;
 }
 
 /*
@@ -141,12 +139,6 @@
   .player-avatar--preview {
     width: 86px;
     height: 86px;
-  }
-
-  .players-add-btn {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
   }
 
   .players-name {

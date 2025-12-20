@@ -11,6 +11,7 @@ import {
   Form,
   Spinner,
 } from 'react-bootstrap';
+import { FaPlus } from "react-icons/fa";
 import {
   usePlayers,
   useCreatePlayer,
@@ -293,7 +294,7 @@ function PlayersPage() {
             onClick={openCreateModal}
             aria-label="Add player"
           >
-            +
+          <FaPlus />
           </Button>
         </div>
       </div>
