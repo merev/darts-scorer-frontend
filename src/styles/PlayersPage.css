@@ -345,16 +345,13 @@
 }
 
 /* ----------------------------------------------------
-   Players grid: make tiles blend with page background
-   (fixes mismatch with app theme card background)
+   FIX: Make player cards match the page background in DARK theme too
+   (Overrides App.css `.app-main .card { background-color: ... !important; }`)
    ---------------------------------------------------- */
 
-/* Your global theme styles apply to .app-main .card (bg-elev-2).
-   On Players page we want the player "cards" to be transparent,
-   so the grid matches the page background exactly. */
-.players-page .players-card,
-.players-page .players-card .card-body {
+.app-main .players-page .card.players-card,
+.app-main .players-page .card.players-card .card-body {
   background-color: transparent !important;
   box-shadow: none !important;
-  border: none !important;
+  border-color: transparent !important;
 }
