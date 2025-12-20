@@ -1,9 +1,14 @@
 /* src/styles/PlayersPage.css */
 
-/* Page container tweaks: slightly less vertical padding in cards area */
+/* Page container tweaks */
 .players-page {
-  --players-col-pad-x: 6px;   /* tighter than bootstrap gutter */
-  --players-row-gap-y: 10px;  /* vertical spacing between rows */
+  /* more free space at left & right */
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+
+  /* grid spacing vars */
+  --players-col-pad-x: 3px;   /* tighter horizontal spacing between players */
+  --players-row-gap-y: 8px;   /* tighter vertical spacing */
 }
 
 /* Header like the reference: title + subtitle + big plus */
@@ -43,11 +48,15 @@
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
 }
 
-/* Grid: override bootstrap gutter with tighter spacing */
+/*
+  Grid:
+  - DO NOT use negative margins anymore (it cancels the page padding)
+  - Use row-gap + per-column padding for tight spacing
+*/
 .players-grid {
-  margin-left: calc(var(--players-col-pad-x) * -1);
-  margin-right: calc(var(--players-col-pad-x) * -1);
   row-gap: var(--players-row-gap-y);
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 .players-col {
@@ -55,21 +64,21 @@
   padding-right: var(--players-col-pad-x);
 }
 
-/* Reduce extra internal padding from Card.Body to tighten vertical spacing */
+/* Reduce extra internal padding from Card.Body */
 .players-card-body {
-  padding: 8px 2px 4px !important;
+  padding: 8px 0 4px !important;
 }
 
-/* Avatar wrapper: minimal spacing under avatar */
+/* Avatar wrapper: minimal spacing */
 .players-avatar-wrap {
   margin-bottom: 6px !important;
 }
 
-/* Names: smaller + heavier + tighter look */
+/* Names: smaller + heavier */
 .players-name {
   margin: 0 !important;
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 900;              /* bolder */
   letter-spacing: 0.06em;
   text-transform: uppercase;
   line-height: 1.05;
@@ -78,13 +87,13 @@
 /* Initials inside the avatar when no image */
 .players-initial {
   font-size: 1.1rem;
-  font-weight: 800;
+  font-weight: 900;
   color: #495057;
 }
 
 .players-initial-preview {
   font-size: 1.8rem;
-  font-weight: 800;
+  font-weight: 900;
   color: #495057;
 }
 
@@ -116,10 +125,19 @@
 }
 
 @media (max-width: 420px) {
+  /* More edge padding on tiny screens */
+  .players-page {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    --players-col-pad-x: 2px;   /* even tighter between players */
+    --players-row-gap-y: 6px;
+  }
+
   .player-avatar {
-    width: 72px; /* keep a bit bigger but still safe */
+    width: 72px;
     height: 72px;
   }
+
   .player-avatar--preview {
     width: 86px;
     height: 86px;
@@ -132,13 +150,8 @@
   }
 
   .players-name {
-    font-size: 0.76rem;
+    font-size: 0.74rem;
     font-weight: 900;
-  }
-
-  .players-page {
-    --players-col-pad-x: 5px;
-    --players-row-gap-y: 8px;
   }
 }
 
