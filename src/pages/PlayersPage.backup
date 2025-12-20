@@ -11,7 +11,7 @@ import {
   Form,
   Spinner,
 } from 'react-bootstrap';
-import { FaPlus } from 'react-icons/fa';
+import { FaPlus } from "react-icons/fa";
 import {
   usePlayers,
   useCreatePlayer,
@@ -32,7 +32,7 @@ async function resizeImageToDataUrl(
     const img = new Image();
     const reader = new FileReader();
 
-    reader.onload = (e) => {
+    reader.onload = e => {
       img.src = e.target?.result as string;
     };
     reader.onerror = reject;
@@ -128,7 +128,7 @@ function PlayersPage() {
   };
 
   const closeMainModal = () => {
-    setModalState((prev) => ({ ...prev, visible: false }));
+    setModalState(prev => ({ ...prev, visible: false }));
     setName('');
     setAvatarData(undefined);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -196,10 +196,7 @@ function PlayersPage() {
       const status = err?.response?.status ?? err?.status;
 
       if (status === 409) {
-        showToast(
-          'Cannot delete this player because they already have recorded games.',
-          'warning'
-        );
+        showToast('Cannot delete this player because they already have recorded games.', 'warning');
       } else if (status === 404) {
         showToast('Player not found (maybe already deleted).', 'warning');
       } else {
@@ -230,125 +227,49 @@ function PlayersPage() {
           {dataUrl ? (
             <img src={dataUrl} alt={player.name} />
           ) : (
-            <span className="players-initial">{initial}</span>
+            <span className="players-initial">
+              {initial}
+            </span>
           )}
         </div>
       </div>
     );
   };
 
-  // Modal layout like reference screenshots:
-  // - Title + subtitle centered
-  // - (Optional) avatar preview shown only when photo exists
-  // - Input
-  // - "+ TAKE PICTURE" (works)
-  // - "+ SELECT AVATAR IMAGE" (UI only, disabled for now)
-  // - Big pill SAVE
-  // - Text CANCEL
-  // - If editing: "DELETE PLAYER" small text button at bottom
-  const renderPlayerFormModalContent = () => {
-    const isCreate = modalState.mode === 'create';
-    const title = isCreate ? 'NEW PLAYER' : 'EDIT PLAYER';
+  const renderModalAvatarPreview = () => {
+    const initial = name.trim()
+      ? name.trim().charAt(0).toUpperCase()
+      : '?';
 
     return (
-      <div className="player-modal">
-        <div className="player-modal__title">{title}</div>
-        <div className="player-modal__subtitle">
-          Enter a name and add an avatar (optional)
+      <div className="d-flex flex-column align-items-center mb-3">
+        <div className="player-avatar player-avatar--preview mb-2" aria-hidden>
+          {avatarData ? (
+            <img src={avatarData} alt="Preview" />
+          ) : (
+            <span className="players-initial-preview">
+              {initial}
+            </span>
+          )}
         </div>
 
-        {/* show preview ONLY if photo exists (matches your reference) */}
-        {avatarData ? (
-          <div className="player-modal__preview">
-            <div className="player-modal__previewCircle" aria-hidden>
-              <img src={avatarData} alt="Preview" />
-            </div>
-          </div>
-        ) : null}
+        <Button
+          variant="outline-secondary"
+          size="sm"
+          type="button"
+          onClick={triggerFileInput}
+        >
+          Take Photo
+        </Button>
 
-        <Form.Group className="player-modal__field" controlId="playerName">
-          <Form.Control
-            value={name}
-            onChange={(e) => setName(e.target.value.toUpperCase())}
-            required
-            placeholder="PLAYER NAME"
-            className="player-modal__input"
-            style={{ textTransform: 'uppercase' }}
-          />
-        </Form.Group>
-
-        <div className="player-modal__actions">
-          <button
-            type="button"
-            className="player-modal__actionBtn"
-            onClick={triggerFileInput}
-          >
-            <span className="player-modal__actionPlus">+</span>
-            TAKE PICTURE
-          </button>
-
-          <button
-            type="button"
-            className="player-modal__actionBtn player-modal__actionBtn--disabled"
-            disabled
-            aria-disabled="true"
-            title="Not implemented yet"
-          >
-            <span className="player-modal__actionPlus">+</span>
-            SELECT AVATAR IMAGE
-          </button>
-
-          <Form.Control
-            type="file"
-            accept="image/*"
-            capture="user"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="d-none"
-          />
-        </div>
-
-        <div className="player-modal__footer">
-          <Button
-            type="submit"
-            className="player-modal__saveBtn"
-            disabled={(creating || updating) || !name.trim()}
-          >
-            {isCreate
-              ? creating ? 'SAVING...' : 'SAVE'
-              : updating ? 'UPDATING...' : 'SAVE'}
-          </Button>
-
-          <button
-            type="button"
-            className="player-modal__cancelBtn"
-            onClick={closeMainModal}
-          >
-            CANCEL
-          </button>
-
-          {!isCreate ? (
-            <button
-              type="button"
-              className="player-modal__deleteBtn"
-              onClick={() => {
-                if (!modalState.playerId) return;
-                const player =
-                  players.find((x) => x.id === modalState.playerId) ?? null;
-                if (!player) return;
-
-                // close edit modal then open confirm modal
-                setModalState((prev) => ({ ...prev, visible: false }));
-                setTimeout(() => {
-                  setPlayerToDelete(player);
-                  setShowConfirmModal(true);
-                }, 0);
-              }}
-            >
-              DELETE PLAYER
-            </button>
-          ) : null}
-        </div>
+        <Form.Control
+          type="file"
+          accept="image/*"
+          capture="user"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="d-none"
+        />
       </div>
     );
   };
@@ -373,7 +294,7 @@ function PlayersPage() {
             onClick={openCreateModal}
             aria-label="Add player"
           >
-            <FaPlus />
+          <FaPlus />
           </Button>
         </div>
       </div>
@@ -396,7 +317,7 @@ function PlayersPage() {
         </Alert>
       )}
 
-      {/* Grid */}
+      {/* Grid: tighter than before */}
       {!isLoading && !isError && players.length > 0 && (
         <Row xs={3} md={5} lg={6} className="players-grid">
           {players.map((p) => (
@@ -421,23 +342,72 @@ function PlayersPage() {
         </Row>
       )}
 
-      {/* Create / Edit Player Modal (redesigned) */}
-      <Modal
-        show={modalState.visible}
-        onHide={closeMainModal}
-        centered
-        dialogClassName="player-form-modal"
-      >
+      {/* Create / Edit Player Modal */}
+      <Modal show={modalState.visible} onHide={closeMainModal} centered>
         <Form onSubmit={handleSubmit}>
-          {/* keep a close button (top-right) but move all layout into body */}
-          <Modal.Header closeButton className="player-form-modal__header" />
-          <Modal.Body className="player-form-modal__body">
-            {renderPlayerFormModalContent()}
+          <Modal.Header closeButton>
+            <Modal.Title>
+              {modalState.mode === 'create' ? 'Add Player' : 'Edit Player'}
+            </Modal.Title>
+          </Modal.Header>
+
+          <Modal.Body>
+            {renderModalAvatarPreview()}
+
+            <Form.Group className="mb-3" controlId="playerName">
+              <Form.Label>Name</Form.Label>
+              <Form.Control
+                value={name}
+                onChange={(e) => setName(e.target.value.toUpperCase())}
+                required
+                placeholder="Enter player name"
+                style={{ textTransform: 'uppercase' }}
+              />
+            </Form.Group>
           </Modal.Body>
+
+          <Modal.Footer className="d-flex justify-content-between">
+            {modalState.mode === 'edit' ? (
+              <Button
+                variant="outline-danger"
+                onClick={() => {
+                  if (!modalState.playerId) return;
+                  const player = players.find((x) => x.id === modalState.playerId) ?? null;
+                  if (!player) return;
+
+                  setModalState(prev => ({ ...prev, visible: false }));
+                  setTimeout(() => {
+                    setPlayerToDelete(player);
+                    setShowConfirmModal(true);
+                  }, 0);
+                }}
+              >
+                Delete
+              </Button>
+            ) : (
+              <div />
+            )}
+
+            <div>
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={closeMainModal}
+                className="me-2"
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={(creating || updating) || !name.trim()}>
+                {modalState.mode === 'create'
+                  ? creating ? 'Saving...' : 'Save'
+                  : updating ? 'Updating...' : 'Update'}
+              </Button>
+            </div>
+          </Modal.Footer>
         </Form>
       </Modal>
 
-      {/* Delete confirmation modal (unchanged) */}
+      {/* Delete confirmation modal */}
       <Modal
         show={showConfirmModal}
         onHide={handleCancelDelete}

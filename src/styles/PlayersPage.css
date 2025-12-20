@@ -2,16 +2,14 @@
 
 /* Page container tweaks */
 .players-page {
-  /* more free space at left & right */
   padding-left: 18px !important;
   padding-right: 18px !important;
 
-  /* grid spacing vars */
-  --players-col-pad-x: 3px;   /* tighter horizontal spacing between players */
-  --players-row-gap-y: 8px;   /* tighter vertical spacing */
+  --players-col-pad-x: 3px;
+  --players-row-gap-y: 8px;
 }
 
-/* Header like the reference: title + subtitle + big plus */
+/* Header */
 .players-header {
   display: flex;
   align-items: flex-start;
@@ -38,7 +36,7 @@
   width: 48px !important;
   height: 48px !important;
   border-radius: 30px !important;
-  font-size: 2rem !important;
+  font-size: 1.25rem !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -46,11 +44,7 @@
   border-color: #495057 !important;
 }
 
-/*
-  Grid:
-  - DO NOT use negative margins anymore (it cancels the page padding)
-  - Use row-gap + per-column padding for tight spacing
-*/
+/* Grid */
 .players-grid {
   row-gap: var(--players-row-gap-y);
   margin-left: 0 !important;
@@ -62,27 +56,23 @@
   padding-right: var(--players-col-pad-x);
 }
 
-/* Reduce extra internal padding from Card.Body */
 .players-card-body {
   padding: 8px 0 4px !important;
 }
 
-/* Avatar wrapper: minimal spacing */
 .players-avatar-wrap {
   margin-bottom: 6px !important;
 }
 
-/* Names: smaller + heavier */
 .players-name {
   margin: 0 !important;
   font-size: 0.78rem;
-  font-weight: 900;              /* bolder */
+  font-weight: 900;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   line-height: 1.05;
 }
 
-/* Initials inside the avatar when no image */
 .players-initial {
   font-size: 1.1rem;
   font-weight: 900;
@@ -95,7 +85,7 @@
   color: #495057;
 }
 
-/* avatars: circular, responsive */
+/* avatars */
 .player-avatar {
   width: 84px;
   height: 84px;
@@ -116,18 +106,16 @@
   display: block;
 }
 
-/* modal preview slightly larger */
 .player-avatar--preview {
   width: 96px;
   height: 96px;
 }
 
 @media (max-width: 420px) {
-  /* More edge padding on tiny screens */
   .players-page {
     padding-left: 16px !important;
     padding-right: 16px !important;
-    --players-col-pad-x: 2px;   /* even tighter between players */
+    --players-col-pad-x: 2px;
     --players-row-gap-y: 6px;
   }
 
@@ -147,7 +135,185 @@
   }
 }
 
-/* Delete modal width */
+/* ----------------------------------------------------
+   NEW: Player create/edit modal layout (reference-like)
+   ---------------------------------------------------- */
+
+/* Dialog width similar to your reference card */
+.player-form-modal .modal-dialog {
+  max-width: 520px;
+}
+
+/* Rounder, card-like */
+.player-form-modal .modal-content {
+  border-radius: 16px;
+}
+
+/* Remove the default header padding; keep only the close button */
+.player-form-modal__header {
+  border-bottom: 0 !important;
+  padding: 10px 12px 0 12px !important;
+}
+
+/* Body becomes the main “card” layout */
+.player-form-modal__body {
+  padding: 18px 18px 20px 18px !important;
+}
+
+/* Inner layout */
+.player-modal {
+  text-align: center;
+}
+
+.player-modal__title {
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 1.45rem;
+}
+
+.player-modal__subtitle {
+  margin-top: 10px;
+  font-size: 1.05rem;
+  opacity: 0.8;
+  line-height: 1.35;
+}
+
+/* Preview only shows after photo */
+.player-modal__preview {
+  display: flex;
+  justify-content: center;
+  margin: 18px 0 12px 0;
+}
+
+.player-modal__previewCircle {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(0,0,0,0.08);
+  background: #e9ecef;
+}
+
+.player-modal__previewCircle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.player-modal__field {
+  margin-top: 18px;
+}
+
+/* Big centered input like the screenshot */
+.player-modal__input {
+  text-align: center;
+  font-size: 1.15rem !important;
+  padding: 14px 14px !important;
+  border-radius: 10px !important;
+  letter-spacing: 0.06em;
+  font-weight: 800;
+}
+
+/* action buttons */
+.player-modal__actions {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.player-modal__actionBtn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 1rem;
+  opacity: 0.9;
+  padding: 10px 0;
+}
+
+.player-modal__actionBtn--disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.player-modal__actionPlus {
+  display: inline-block;
+  margin-right: 8px;
+  font-weight: 900;
+  font-size: 1.2rem;
+  transform: translateY(1px);
+}
+
+/* footer */
+.player-modal__footer {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Big pill save */
+.player-modal__saveBtn {
+  width: 100% !important;
+  max-width: 320px;
+  border-radius: 999px !important;
+  padding: 14px 18px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 1.1rem !important;
+}
+
+/* Cancel as text */
+.player-modal__cancelBtn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  padding: 6px 10px;
+}
+
+/* Delete (edit only) – small, separated text action */
+.player-modal__deleteBtn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  padding: 6px 10px;
+}
+
+/* Mobile modal sizing */
+@media (max-width: 420px) {
+  .player-form-modal .modal-dialog {
+    max-width: 92vw;
+  }
+
+  .player-modal__title {
+    font-size: 1.3rem;
+  }
+
+  .player-modal__input {
+    font-size: 1.05rem !important;
+  }
+
+  .player-modal__saveBtn {
+    max-width: 280px;
+  }
+}
+
+/* Delete modal width + hard centering (unchanged) */
 .delete-player-modal-parent .delete-player-modal.modal-dialog {
   max-width: 360px !important;
 }
@@ -158,7 +324,6 @@
   }
 }
 
-/* Hard center delete modal on mobile */
 .delete-player-modal-parent.modal {
   position: fixed !important;
   inset: 0 !important;
