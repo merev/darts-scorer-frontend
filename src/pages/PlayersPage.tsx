@@ -396,14 +396,18 @@ function PlayersPage() {
               <Button
                 variant="outline-danger"
                 onClick={() => {
-                  // open confirmation modal for the player being edited
-                  if (modalState.playerId) {
-                    const player = players.find((x) => x.id === modalState.playerId) ?? null;
-                    if (player) {
-                      setPlayerToDelete(player);
-                      setShowConfirmModal(true);
-                    }
-                  }
+                  if (!modalState.playerId) return;
+                  const player = players.find((x) => x.id === modalState.playerId) ?? null;
+                  if (!player) return;
+
+                  // IMPORTANT: close the edit modal first (avoids stacked modal layout issues on mobile)
+                  setModalState(prev => ({ ...prev, visible: false }));
+
+                  // then open confirm modal on next tick
+                  setTimeout(() => {
+                    setPlayerToDelete(player);
+                    setShowConfirmModal(true);
+                  }, 0);
                 }}
               >
                 Delete
