@@ -1,7 +1,7 @@
 /* avatars: fluid, circular, responsive */
 .player-avatar {
-  width: 72px;
-  height: 72px;
+  width: 84px;
+  height: 84px;
   border-radius: 50%;
   overflow: hidden;
   display: inline-flex;
@@ -21,19 +21,19 @@
 
 /* modal preview slightly larger */
 .player-avatar--preview {
-  width: 88px;
-  height: 88px;
+  width: 96px;
+  height: 96px;
 }
 
 /* On very small viewports make avatars smaller so they don't become ellipses inside narrow columns */
 @media (max-width: 420px) {
   .player-avatar {
-    width: 56px;
-    height: 56px;
+    width: 64px;
+    height: 64px;
   }
   .player-avatar--preview {
-    width: 72px;
-    height: 72px;
+    width: 80px;
+    height: 80px;
   }
 }
 

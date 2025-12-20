@@ -69,15 +69,6 @@ function HomePage() {
           </div>
         </Container>
       </section>
-
-      {/* <section className="home-footer-note">
-        <Container>
-          <p className="home-footer-text">
-            Built with React & React-Bootstrap. Frontend runs as a standalone Docker
-            container behind your existing NGINX.
-          </p>
-        </Container>
-      </section> */}
     </div>
   );
 }

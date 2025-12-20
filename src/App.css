@@ -15,7 +15,14 @@ body,
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 1.5rem 0 1.5rem; /* vertical spacing; no width constraints */
+  padding: 1.5rem 1rem; /* left & right added */
+}
+
+/* Extra breathing room on larger screens */
+@media (min-width: 768px) {
+  .app-main {
+    padding: 2rem 2rem;
+  }
 }
 
 .app-footer {

@@ -19,7 +19,7 @@ import {
 } from '../api/players';
 import type { Player } from '../types/darts';
 import { useToast } from '../components/ToastProvider';
-import './styles/PlayersPage.css';
+import '../styles/PlayersPage.css';
 
 // Helper: resize/compress image before sending
 async function resizeImageToDataUrl(
@@ -338,7 +338,7 @@ function PlayersPage() {
 
       {/* Players as borderless, transparent cards (entire card clickable) */}
       {!isLoading && !isError && players.length > 0 && (
-        <Row xs={3} md={5} lg={6} className="g-3">
+        <Row xs={3} md={5} lg={6} className="g-2">
           {players.map((p) => (
             <Col key={p.id}>
               <Card
