@@ -427,7 +427,12 @@ function PlayersPage() {
       </Modal>
 
       {/* Delete confirmation modal */}
-      <Modal show={showConfirmModal} onHide={handleCancelDelete} centered>
+      <Modal
+        show={showConfirmModal}
+        onHide={handleCancelDelete}
+        centered
+        dialogClassName="delete-player-modal"
+      >
         <Modal.Header closeButton>
           <Modal.Title>Delete Player</Modal.Title>
         </Modal.Header>

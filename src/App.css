@@ -60,3 +60,15 @@ body,
     height: 72px;
   }
 }
+
+/* Make delete confirmation modal narrower */
+.delete-player-modal .modal-dialog {
+  max-width: 360px;
+}
+
+/* Optional: even nicer on very small phones */
+@media (max-width: 420px) {
+  .delete-player-modal .modal-dialog {
+    max-width: 300px;
+  }
+}
