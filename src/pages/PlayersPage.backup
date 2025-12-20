@@ -100,6 +100,8 @@ function PlayersPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [playerToDelete, setPlayerToDelete] = useState<Player | null>(null);
 
+  // ---- Helpers ----
+
   const openCreateModal = () => {
     setModalState({
       mode: 'create',
@@ -177,17 +179,27 @@ function PlayersPage() {
     }
   };
 
+  // Request delete from inside modal or other places.
+  // This will show the confirmation dialog.
+  const requestDelete = (player: Player) => {
+    setPlayerToDelete(player);
+    setShowConfirmModal(true);
+  };
+
   const handleCancelDelete = () => {
     setShowConfirmModal(false);
     setPlayerToDelete(null);
   };
 
+  // Called when the user confirms deletion in the confirmation modal.
+  // After delete we also close the edit modal if it was open.
   const handleConfirmDelete = async () => {
     if (!playerToDelete) return;
 
     try {
       await deletePlayer(playerToDelete.id);
       showToast(`Player "${playerToDelete.name}" deleted.`, 'success');
+      // close edit modal if the deleted player is currently being edited
       if (modalState.playerId === playerToDelete.id) {
         closeMainModal();
       }
@@ -208,6 +220,7 @@ function PlayersPage() {
     }
   };
 
+  // Keyboard accessibility: Enter or Space opens the card
   const handleCardKeyDown = (e: React.KeyboardEvent, player: Player) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -215,18 +228,25 @@ function PlayersPage() {
     }
   };
 
+  // Avatar rendering helpers
   const renderAvatarCircle = (player: Player) => {
     const dataUrl: string | undefined =
       (player.avatarData as string | undefined) ?? undefined;
     const initial = (player.name || '?').charAt(0).toUpperCase();
 
     return (
-      <div className="d-flex justify-content-center players-avatar-wrap">
+      <div className="d-flex justify-content-center mb-1">
         <div className="player-avatar" aria-hidden>
           {dataUrl ? (
             <img src={dataUrl} alt={player.name} />
           ) : (
-            <span className="players-initial">
+            <span
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 600,
+                color: '#495057',
+              }}
+            >
               {initial}
             </span>
           )}
@@ -235,6 +255,7 @@ function PlayersPage() {
     );
   };
 
+  // Avatar preview inside the modal (bigger)
   const renderModalAvatarPreview = () => {
     const initial = name.trim()
       ? name.trim().charAt(0).toUpperCase()
@@ -246,7 +267,13 @@ function PlayersPage() {
           {avatarData ? (
             <img src={avatarData} alt="Preview" />
           ) : (
-            <span className="players-initial-preview">
+            <span
+              style={{
+                fontSize: '2rem',
+                fontWeight: 600,
+                color: '#495057',
+              }}
+            >
               {initial}
             </span>
           )}
@@ -273,30 +300,23 @@ function PlayersPage() {
     );
   };
 
+  // ---- JSX ----
   return (
-    <Container className="py-3 players-page">
-      {/* Header */}
-      <div className="players-header mb-3">
-        <div className="players-header-left">
-          <div className="players-title">PLAYERS</div>
-          <div className="players-subtitle">Tap on player to edit</div>
+    <Container className="py-3">
+      {/* Header row */}
+      <Row className="align-items-center mb-3">
+        <Col>
+          <h2 className="mb-0">Players</h2>
           {isError && (
-            <div className="text-danger small">
+            <small className="text-danger">
               {(error as any)?.message ?? 'Could not load players.'}
-            </div>
+            </small>
           )}
-        </div>
-
-        <div className="players-header-right">
-          <Button
-            className="players-add-btn"
-            onClick={openCreateModal}
-            aria-label="Add player"
-          >
-            +
-          </Button>
-        </div>
-      </div>
+        </Col>
+        <Col className="text-end">
+          <Button onClick={openCreateModal}>+</Button>
+        </Col>
+      </Row>
 
       {/* Loading / error / empty states */}
       {isLoading && (
@@ -316,24 +336,38 @@ function PlayersPage() {
         </Alert>
       )}
 
-      {/* Grid: tighter than before */}
+      {/* Players as borderless, transparent cards (entire card clickable) */}
       {!isLoading && !isError && players.length > 0 && (
-        <Row xs={3} md={5} lg={6} className="players-grid">
+        <Row xs={3} md={5} lg={6} className="g-1 g-md-2">
           {players.map((p) => (
-            <Col key={p.id} className="players-col">
+            <Col key={p.id}>
               <Card
-                className="h-100 text-center border-0 bg-transparent players-card"
+                className="h-100 text-center border-0 bg-transparent"
                 role="button"
                 tabIndex={0}
                 onClick={() => openEditModal(p)}
                 onKeyDown={(e) => handleCardKeyDown(e, p)}
+                style={{ cursor: 'pointer' }}
                 aria-label={`Edit player ${p.name}`}
               >
-                <Card.Body className="players-card-body">
+                <Card.Body>
                   {renderAvatarCircle(p)}
-                  <Card.Text className="players-name">
+                  <Card.Text
+                    className="mb-0"
+                    style={{
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.02em',
+                    }}
+                  >
                     {p.name.toUpperCase()}
                   </Card.Text>
+                  {p.stats && (
+                    <div className="text-muted small mb-1">
+                      <div>Matches: {p.stats.matchesPlayed}</div>
+                      <div>Wins: {p.stats.matchesWon}</div>
+                    </div>
+                  )}
                 </Card.Body>
               </Card>
             </Col>
@@ -341,7 +375,7 @@ function PlayersPage() {
         </Row>
       )}
 
-      {/* Create / Edit Player Modal */}
+      {/* Create / Edit Player Modal (contains Delete button) */}
       <Modal show={modalState.visible} onHide={closeMainModal} centered>
         <Form onSubmit={handleSubmit}>
           <Modal.Header closeButton>
@@ -349,7 +383,6 @@ function PlayersPage() {
               {modalState.mode === 'create' ? 'Add Player' : 'Edit Player'}
             </Modal.Title>
           </Modal.Header>
-
           <Modal.Body>
             {renderModalAvatarPreview()}
 
@@ -364,8 +397,8 @@ function PlayersPage() {
               />
             </Form.Group>
           </Modal.Body>
-
           <Modal.Footer className="d-flex justify-content-between">
+            {/* Delete button visible only when editing an existing player */}
             {modalState.mode === 'edit' ? (
               <Button
                 variant="outline-danger"
@@ -374,7 +407,10 @@ function PlayersPage() {
                   const player = players.find((x) => x.id === modalState.playerId) ?? null;
                   if (!player) return;
 
+                  // IMPORTANT: close the edit modal first (avoids stacked modal layout issues on mobile)
                   setModalState(prev => ({ ...prev, visible: false }));
+
+                  // then open confirm modal on next tick
                   setTimeout(() => {
                     setPlayerToDelete(player);
                     setShowConfirmModal(true);
@@ -384,16 +420,11 @@ function PlayersPage() {
                 Delete
               </Button>
             ) : (
-              <div />
+              <div /> // spacer to keep Save button right-aligned
             )}
 
             <div>
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={closeMainModal}
-                className="me-2"
-              >
+              <Button variant="secondary" type="button" onClick={closeMainModal} className="me-2">
                 Cancel
               </Button>
               <Button type="submit" disabled={(creating || updating) || !name.trim()}>
@@ -419,7 +450,7 @@ function PlayersPage() {
           <Modal.Title>Delete Player</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <p className="mb-0">
+          <p>
             Are you sure you want to delete <strong>{playerToDelete?.name}</strong>? This action
             cannot be undone.
           </p>

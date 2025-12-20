@@ -1,4 +1,94 @@
-/* avatars: fluid, circular, responsive */
+/* src/styles/PlayersPage.css */
+
+/* Page container tweaks: slightly less vertical padding in cards area */
+.players-page {
+  --players-col-pad-x: 6px;   /* tighter than bootstrap gutter */
+  --players-row-gap-y: 10px;  /* vertical spacing between rows */
+}
+
+/* Header like the reference: title + subtitle + big plus */
+.players-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.players-title {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.players-subtitle {
+  margin-top: 6px;
+  font-size: 0.95rem;
+  opacity: 0.75;
+}
+
+/* Enhanced + button */
+.players-add-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+/* Grid: override bootstrap gutter with tighter spacing */
+.players-grid {
+  margin-left: calc(var(--players-col-pad-x) * -1);
+  margin-right: calc(var(--players-col-pad-x) * -1);
+  row-gap: var(--players-row-gap-y);
+}
+
+.players-col {
+  padding-left: var(--players-col-pad-x);
+  padding-right: var(--players-col-pad-x);
+}
+
+/* Reduce extra internal padding from Card.Body to tighten vertical spacing */
+.players-card-body {
+  padding: 8px 2px 4px !important;
+}
+
+/* Avatar wrapper: minimal spacing under avatar */
+.players-avatar-wrap {
+  margin-bottom: 6px !important;
+}
+
+/* Names: smaller + heavier + tighter look */
+.players-name {
+  margin: 0 !important;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.05;
+}
+
+/* Initials inside the avatar when no image */
+.players-initial {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #495057;
+}
+
+.players-initial-preview {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #495057;
+}
+
+/* avatars: circular, responsive */
 .player-avatar {
   width: 84px;
   height: 84px;
@@ -25,18 +115,34 @@
   height: 96px;
 }
 
-/* On very small viewports make avatars smaller so they don't become ellipses inside narrow columns */
 @media (max-width: 420px) {
   .player-avatar {
-    width: 64px;
-    height: 64px;
+    width: 72px; /* keep a bit bigger but still safe */
+    height: 72px;
   }
   .player-avatar--preview {
-    width: 80px;
-    height: 80px;
+    width: 86px;
+    height: 86px;
+  }
+
+  .players-add-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+  }
+
+  .players-name {
+    font-size: 0.76rem;
+    font-weight: 900;
+  }
+
+  .players-page {
+    --players-col-pad-x: 5px;
+    --players-row-gap-y: 8px;
   }
 }
 
+/* Delete modal width */
 .delete-player-modal-parent .delete-player-modal.modal-dialog {
   max-width: 360px !important;
 }
@@ -47,25 +153,23 @@
   }
 }
 
-/* --- Hard center the delete modal on mobile (fixes iOS/Android viewport quirks) --- */
+/* Hard center delete modal on mobile */
 .delete-player-modal-parent.modal {
   position: fixed !important;
   inset: 0 !important;
-  height: 100dvh !important;            /* dynamic viewport height (mobile-safe) */
+  height: 100dvh !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  padding: 0 12px !important;          /* keep some side margin on narrow phones */
+  padding: 0 12px !important;
 }
 
-/* optional: if browser doesn't support dvh, fallback */
 @supports not (height: 100dvh) {
   .delete-player-modal-parent.modal {
     height: 100vh !important;
   }
 }
 
-/* keep the dialog from adding its own margins that can shift it */
 .delete-player-modal-parent .modal-dialog {
   margin: 0 !important;
 }
