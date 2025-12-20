@@ -352,7 +352,9 @@ function PlayersPage() {
               >
                 <Card.Body>
                   {renderAvatarCircle(p)}
-                  <Card.Text className="fw-semibold mb-1">{p.name}</Card.Text>
+                  <Card.Text className="fw-semibold mb-1">
+                    {p.name.toUpperCase()}
+                  </Card.Text>
                   {p.stats && (
                     <div className="text-muted small mb-1">
                       <div>Matches: {p.stats.matchesPlayed}</div>
@@ -381,9 +383,10 @@ function PlayersPage() {
               <Form.Label>Name</Form.Label>
               <Form.Control
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value.toUpperCase())}
                 required
                 placeholder="Enter player name"
+                style={{ textTransform: 'uppercase' }}
               />
             </Form.Group>
           </Modal.Body>
