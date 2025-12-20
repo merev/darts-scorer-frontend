@@ -4,12 +4,9 @@ function AppFooter() {
   return (
     <footer className="app-footer bg-dark text-light">
       <Container className="d-flex justify-content-between align-items-center py-2">
-        <span className="small">
+        <div className="small">
           Darts Scorer · Self-hosted · {new Date().getFullYear()}
-        </span>
-        <span className="small text-light">
-          Built with React & Go · Docker & NGINX
-        </span>
+        </div>
       </Container>
     </footer>
   );

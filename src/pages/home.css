@@ -18,7 +18,7 @@
 
 .home-logo-icon {
   font-size: 3rem;
-  color: var(--primary);
+  color: var(--primary); /* restored blue */
   margin-bottom: 0.75rem;
 }
 
@@ -40,23 +40,40 @@
   border-radius: 999px;
 }
 
-/* Theme-aware surfaces (work in both light and dark) */
+/* Make ALL buttons theme-aware and override Bootstrap button defaults */
 .home-btn.primary,
 .home-btn.secondary,
 .home-btn.tertiary,
 .home-btn.subtle {
-  color: var(--text);
-  background-color: var(--bg-elev-2);
-  border: 1px solid var(--border);
+  color: var(--text) !important;
+  background-color: var(--bg-elev-2) !important;
+  border: 1px solid var(--border) !important;
 }
 
-.home-btn.primary:hover
+/* Keep hover effect, but NOT blue (applies to ALL 4 buttons) */
+.home-btn.primary:hover,
 .home-btn.secondary:hover,
 .home-btn.tertiary:hover,
 .home-btn.subtle:hover {
-  color: var(--text);
-  background-color: var(--bg-elev-1);
-  border-color: var(--border);
+  color: var(--text) !important;
+  background-color: var(--btn-hover-bg) !important;
+  border-color: var(--btn-hover-border) !important;
+}
+
+/* Optional: a tiny "lift" to make hover feel nice */
+.home-btn.primary:hover,
+.home-btn.secondary:hover,
+.home-btn.tertiary:hover,
+.home-btn.subtle:hover {
+  transform: translateY(-1px);
+}
+
+/* Make transition smooth */
+.home-btn.primary,
+.home-btn.secondary,
+.home-btn.tertiary,
+.home-btn.subtle {
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
 }
 
 /* RESPONSIVE */
