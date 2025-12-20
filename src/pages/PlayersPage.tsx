@@ -431,6 +431,7 @@ function PlayersPage() {
         show={showConfirmModal}
         onHide={handleCancelDelete}
         centered
+        size="sm"
         dialogClassName="delete-player-modal"
       >
         <Modal.Header closeButton>
