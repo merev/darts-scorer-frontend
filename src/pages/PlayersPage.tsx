@@ -19,6 +19,7 @@ import {
 } from '../api/players';
 import type { Player } from '../types/darts';
 import { useToast } from '../components/ToastProvider';
+import './styles/PlayersPage.css';
 
 // Helper: resize/compress image before sending
 async function resizeImageToDataUrl(
