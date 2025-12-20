@@ -61,15 +61,24 @@ body,
   }
 }
 
-/* Narrow delete confirmation modal */
+/* Force delete modal to be perfectly centered on mobile */
 .delete-player-modal.modal-dialog {
   max-width: 360px !important;
 }
 
-/* Even smaller on phones */
+/* Ensure the delete modal is truly centered in viewport */
+.delete-player-modal.modal-dialog-centered {
+  min-height: calc(100% - 1rem) !important;
+}
+
 @media (max-width: 420px) {
   .delete-player-modal.modal-dialog {
     max-width: 300px !important;
   }
+
+  .delete-player-modal.modal-dialog-centered {
+    min-height: calc(100% - 1rem) !important;
+  }
 }
+
 
