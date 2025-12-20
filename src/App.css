@@ -62,12 +62,12 @@ body,
 }
 
 /* Force delete modal to be perfectly centered on mobile */
-.delete-player-modal.modal-dialog {
+/* .delete-player-modal.modal-dialog {
   max-width: 360px !important;
-}
+} */
 
 /* Ensure the delete modal is truly centered in viewport */
-.delete-player-modal.modal-dialog-centered {
+/* .delete-player-modal.modal-dialog-centered {
   min-height: calc(100% - 1rem) !important;
 }
 
@@ -78,6 +78,18 @@ body,
 
   .delete-player-modal.modal-dialog-centered {
     min-height: calc(100% - 1rem) !important;
+  }
+} */
+
+
+
+.delete-player-modal-parent .delete-player-modal.modal-dialog {
+  max-width: 360px !important;
+}
+
+@media (max-width: 420px) {
+  .delete-player-modal-parent .delete-player-modal.modal-dialog {
+    max-width: 300px !important;
   }
 }
 
