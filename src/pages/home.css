@@ -40,16 +40,7 @@
   border-radius: 999px;
 }
 
-.home-btn.primary {
-  background: #0d6efd;
-  border-color: #0d6efd;
-}
-
-.home-btn.primary:hover {
-  background: #0b5ed7;
-  border-color: #0b5ed7;
-}
-
+.home-btn.primary,
 .home-btn.secondary,
 .home-btn.tertiary,
 .home-btn.subtle {
@@ -58,9 +49,11 @@
   border-color: #dee2e6;
 }
 
+.home-btn.primary:hover,
 .home-btn.secondary:hover,
 .home-btn.tertiary:hover,
 .home-btn.subtle:hover {
+  color: #212529;
   background-color: #ffffff;
   border-color: #ced4da;
 }

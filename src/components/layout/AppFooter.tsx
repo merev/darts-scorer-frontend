@@ -7,7 +7,7 @@ function AppFooter() {
         <span className="small">
           Darts Scorer · Self-hosted · {new Date().getFullYear()}
         </span>
-        <span className="small text-muted">
+        <span className="small text-light">
           Built with React & Go · Docker & NGINX
         </span>
       </Container>

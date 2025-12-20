@@ -101,12 +101,12 @@ body,
 
 /* Paint the page background only for the main content area */
 .app-root.theme-light .app-main {
-  background: radial-gradient(circle at top, #fdfdfd 0, #f5f6fa 45%, #edf0f4 100%);
+  /* background: radial-gradient(circle at top, #fdfdfd 0, #f5f6fa 45%, #edf0f4 100%); */
   color: var(--text);
 }
 
 .app-root.theme-dark .app-main {
-  background: radial-gradient(circle at top, #1a1d22 0, #121418 45%, #0b0c0f 100%);
+  /* background: radial-gradient(circle at top, #1a1d22 0, #121418 45%, #0b0c0f 100%); */
   color: var(--text);
 }
 
@@ -205,3 +205,4 @@ body,
 .app-main * {
   transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
 }
+

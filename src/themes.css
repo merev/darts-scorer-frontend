@@ -2,42 +2,30 @@
    THEME TOKENS (CSS variables)
    ========================= */
 
-/* Tokens are stored on .app-root so header/footer can read them if needed,
-   but the actual theming is applied ONLY to .app-main in App.css. */
-
 .app-root {
-  /* defaults (light-ish) */
+  /* LIGHT defaults */
   --bg: #ffffff;
-  --bg-elev-1: #f7f8fb;     /* cards / sections */
-  --bg-elev-2: #ffffff;     /* modals / popovers */
+  --bg-surface: #ffffff;
   --text: #111111;
   --text-muted: rgba(17, 17, 17, 0.7);
   --border: rgba(17, 17, 17, 0.16);
-
-  --primary: #0d6efd;
-  --primary-text: #ffffff;
-
-  --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  --shadow: none;
 }
 
 .app-root.theme-light {
   --bg: #ffffff;
-  --bg-elev-1: #f7f8fb;
-  --bg-elev-2: #ffffff;
+  --bg-surface: #ffffff;
   --text: #111111;
   --text-muted: rgba(17, 17, 17, 0.7);
   --border: rgba(17, 17, 17, 0.16);
-
-  --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  --shadow: none;
 }
 
 .app-root.theme-dark {
-  --bg: #0b0c0f;
-  --bg-elev-1: #121418;
-  --bg-elev-2: #161a20;
+  --bg: #0b0c0f;        /* PURE solid dark */
+  --bg-surface: #0b0c0f;
   --text: #eaeaea;
   --text-muted: rgba(234, 234, 234, 0.72);
-  --border: rgba(234, 234, 234, 0.14);
-
-  --shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  --border: rgba(234, 234, 234, 0.12);
+  --shadow: none;
 }
