@@ -13,6 +13,10 @@ function AppNavbar({ theme, onToggleTheme }: AppNavbarProps) {
   const navbarRef = useRef<HTMLElement | null>(null);
   const location = useLocation();
 
+  // ✅ CHANGE THIS to your actual file in /public
+  // Example: put "logo.png" in public/ -> use "/logo.png"
+  const LOGO_SRC = '/logo.png';
+
   // Close menu on route change
   useEffect(() => {
     setExpanded(false);
@@ -57,14 +61,24 @@ function AppNavbar({ theme, onToggleTheme }: AppNavbarProps) {
       onToggle={(nextExpanded) => setExpanded(!!nextExpanded)}
       className="app-navbar app-topbar"
     >
-      {/* IMPORTANT: this class is used by CSS to keep actions on the top row and
-          render the collapse as a full-width second row on mobile */}
       <Container className="app-navbar__container">
         <Navbar.Brand as={NavLink} to="/" end onClick={closeAndBlurToggle}>
           Darts Scorer
         </Navbar.Brand>
+        {/* Collapsible nav (comes BEFORE actions on desktop, so actions are far right) */}
+        <Navbar.Collapse id="main-nav" className="app-topbar__collapse">
+          <Nav className="app-topbar__nav">
+            <Nav.Link as={NavLink} to="/new-game" onClick={closeAndBlurToggle}>
+              New Game
+            </Nav.Link>
 
-        {/* Right side actions (always top-right) */}
+            <Nav.Link as={NavLink} to="/players" onClick={closeAndBlurToggle}>
+              Players
+            </Nav.Link>
+          </Nav>
+        </Navbar.Collapse>
+
+        {/* Right side actions (theme + burger) */}
         <div className="navbar-actions">
           <button
             type="button"
@@ -85,19 +99,6 @@ function AppNavbar({ theme, onToggleTheme }: AppNavbarProps) {
             }}
           />
         </div>
-
-        {/* Collapsible nav (opens under the header row on mobile; animated) */}
-        <Navbar.Collapse id="main-nav" className="app-topbar__collapse">
-          <Nav className="app-topbar__nav">
-            <Nav.Link as={NavLink} to="/new-game" onClick={closeAndBlurToggle}>
-              New Game
-            </Nav.Link>
-
-            <Nav.Link as={NavLink} to="/players" onClick={closeAndBlurToggle}>
-              Players
-            </Nav.Link>
-          </Nav>
-        </Navbar.Collapse>
       </Container>
     </Navbar>
   );
