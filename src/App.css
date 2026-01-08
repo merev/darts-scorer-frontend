@@ -248,3 +248,140 @@ body.theme-dark .modal-header .btn-close {
 .app-main * {
   transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
 }
+
+
+/* =====================================
+   TOP / BOTTOM BAR (shared header/footer)
+   ===================================== */
+
+.app-navbar {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.app-topbar__inner {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+}
+
+
+.app-topbar {
+  /* "like header" dark glass */
+  background: rgba(17, 20, 24, 0.92) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.app-topbar__inner {
+  min-height: 56px;
+}
+
+.app-topbar__nav {
+  margin-left: 18px;
+  gap: 10px;
+}
+
+
+/* Footer text centered */
+.app-footer__inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.app-footer__text {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+  text-align: center;
+}
+
+.app-footer__dot {
+  margin: 0 5px;
+  opacity: 0.65;
+}
+
+/* .app-footer__author {
+  color: rgba(169, 169, 169, 0.92);
+} */
+
+/* ==========================================
+   MOBILE NAV LAYOUT FIX (no shifting + animation)
+   ========================================== */
+
+.app-navbar {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  background: rgba(17, 20, 24, 0.92) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+/* Make navbar content predictable */
+.app-navbar__container {
+  display: flex;
+  flex-wrap: wrap;          /* allows collapse to be a "second row" */
+  align-items: center;
+  min-height: 56px;         /* stable header height */
+}
+
+/* Keep actions pinned to the top-right always */
+.navbar-actions {
+  margin-left: auto;        /* push to right */
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* --- KEY PART ---
+   On mobile, collapse becomes full-width row under header.
+   This prevents moon/burger from being pushed down / moving around.
+*/
+@media (max-width: 575px) {
+  .app-navbar__container .navbar-brand {
+    order: 1;
+  }
+
+  .app-navbar__container .navbar-actions {
+    order: 2;
+  }
+
+  .app-navbar__container .navbar-collapse {
+    order: 3;
+    flex-basis: 100%;      /* take full width on its own line */
+    width: 100%;
+  }
+
+  /* Prevent extra "mystery gap" inside the dropdown area */
+  .app-navbar__container .navbar-nav {
+    padding-top: 0px;
+    padding-bottom: 10px;
+  }
+}
+
+/* On desktop, keep everything inline (default Bootstrap behavior) */
+@media (min-width: 576px) {
+  .app-navbar__container {
+    flex-wrap: nowrap;
+  }
+}
+
+
+/* DO NOT kill the animation */
+.navbar-collapse {
+  transition: height 0.25s ease;
+}
+
+/* Mobile behavior: collapse opens BELOW header row */
+@media (max-width: 575px) {
+  .app-navbar__container .navbar-collapse {
+    flex-basis: 100%;
+    width: 100%;
+  }
+}

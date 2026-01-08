@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Container, Nav, Navbar } from 'react-bootstrap';
 import { NavLink, useLocation } from 'react-router-dom';
-import { FiSun, FiMoon } from 'react-icons/fi';
+import { FiMoon, FiSun } from 'react-icons/fi';
 
 interface AppNavbarProps {
   theme: 'light' | 'dark';
@@ -18,7 +18,7 @@ function AppNavbar({ theme, onToggleTheme }: AppNavbarProps) {
     setExpanded(false);
   }, [location.pathname]);
 
-  // Close menu on outside click
+  // Close menu on outside click (only when expanded)
   useEffect(() => {
     if (!expanded) return;
 
@@ -55,18 +55,16 @@ function AppNavbar({ theme, onToggleTheme }: AppNavbarProps) {
       expand="sm"
       expanded={expanded}
       onToggle={(nextExpanded) => setExpanded(!!nextExpanded)}
-      className="app-navbar"
+      className="app-navbar app-topbar"
     >
-      <Container>
-        <Navbar.Brand
-          as={NavLink}
-          to="/"
-          end
-          onClick={closeAndBlurToggle}
-        >
+      {/* IMPORTANT: this class is used by CSS to keep actions on the top row and
+          render the collapse as a full-width second row on mobile */}
+      <Container className="app-navbar__container">
+        <Navbar.Brand as={NavLink} to="/" end onClick={closeAndBlurToggle}>
           Darts Scorer
         </Navbar.Brand>
 
+        {/* Right side actions (always top-right) */}
         <div className="navbar-actions">
           <button
             type="button"
@@ -88,31 +86,16 @@ function AppNavbar({ theme, onToggleTheme }: AppNavbarProps) {
           />
         </div>
 
-        <Navbar.Collapse id="main-nav">
-          <Nav className="me-auto">
-            <Nav.Link
-              as={NavLink}
-              to="/new-game"
-              onClick={closeAndBlurToggle}
-            >
+        {/* Collapsible nav (opens under the header row on mobile; animated) */}
+        <Navbar.Collapse id="main-nav" className="app-topbar__collapse">
+          <Nav className="app-topbar__nav">
+            <Nav.Link as={NavLink} to="/new-game" onClick={closeAndBlurToggle}>
               New Game
             </Nav.Link>
 
-            <Nav.Link
-              as={NavLink}
-              to="/players"
-              onClick={closeAndBlurToggle}
-            >
+            <Nav.Link as={NavLink} to="/players" onClick={closeAndBlurToggle}>
               Players
             </Nav.Link>
-
-            {/* <Nav.Link
-              as={NavLink}
-              to="/stats"
-              onClick={closeAndBlurToggle}
-            >
-              Stats
-            </Nav.Link> */}
           </Nav>
         </Navbar.Collapse>
       </Container>
