@@ -24,9 +24,36 @@ function clamp(n: number, min: number, max: number) {
 
 function getRoundNumber(game: GameState) {
   const playersCount = Math.max(1, game.players.length);
-  const visits = (game as any).history?.length ?? 0;
-  return Math.floor(visits / playersCount) + 1;
+  const history = (game as any).history ?? [];
+  const ms: any = (game as any).matchScore;
+
+  if (!ms?.sets?.length) {
+    const visits = history.length ?? 0;
+    return Math.floor(visits / playersCount) + 1;
+  }
+
+  const set = ms.sets[ms.currentSetIndex];
+  const legIdx = ms.currentLegIndex;
+
+  // Find the previous finished leg end time (if any)
+  let lastFinishedAt: string | null = null;
+
+  if (legIdx > 0) {
+    const prevLeg = set.legs[legIdx - 1];
+    lastFinishedAt = prevLeg?.finishedAt ?? null;
+  } else if (ms.currentSetIndex > 0) {
+    const prevSet = ms.sets[ms.currentSetIndex - 1];
+    const prevLeg = prevSet?.legs?.[prevSet.legs.length - 1];
+    lastFinishedAt = prevLeg?.finishedAt ?? null;
+  }
+
+  const since = lastFinishedAt
+    ? history.filter((t: any) => new Date(t.createdAt).getTime() > new Date(lastFinishedAt!).getTime()).length
+    : history.length;
+
+  return Math.floor(since / playersCount) + 1;
 }
+
 
 function getCurrentLegNumber(game: GameState) {
   const ms: any = (game as any).matchScore;
