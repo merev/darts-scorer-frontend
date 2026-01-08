@@ -149,12 +149,6 @@
   border-radius: 16px;
 }
 
-/* Remove the default header padding; keep only the close button */
-.player-form-modal__header {
-  border-bottom: 0 !important;
-  padding: 10px 12px 0 12px !important;
-}
-
 /* Body becomes the main “card” layout */
 .player-form-modal__body {
   padding: 18px 18px 20px 18px !important;
@@ -214,6 +208,37 @@
   border-radius: 10px !important;
   letter-spacing: 0.06em;
   font-weight: 800;
+
+  /* requested changes */
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Theme-specific textbox fill */
+body.theme-dark .player-modal__input {
+  background-color: rgba(255, 255, 255, 0.08) !important; /* lighter in dark */
+  color: var(--text) !important;
+}
+
+body.theme-light .player-modal__input {
+  background-color: rgba(0, 0, 0, 0.06) !important; /* greyer in light */
+  color: var(--text) !important;
+}
+
+/* Placeholder: "Player Name" smaller + not shouty */
+.player-modal__input::placeholder {
+  font-size: 0.95rem;
+  font-weight: 100;
+  letter-spacing: 0.02em;
+  opacity: 0.7;
+  text-transform: none;
+}
+
+/* Keep focus clean (no blue border/ring) */
+.player-modal__input:focus {
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
 
 /* action buttons */

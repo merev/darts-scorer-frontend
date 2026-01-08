@@ -237,15 +237,6 @@ function PlayersPage() {
     );
   };
 
-  // Modal layout like reference screenshots:
-  // - Title + subtitle centered
-  // - (Optional) avatar preview shown only when photo exists
-  // - Input
-  // - "+ TAKE PICTURE" (works)
-  // - "+ SELECT AVATAR IMAGE" (UI only, disabled for now)
-  // - Big pill SAVE
-  // - Text CANCEL
-  // - If editing: "DELETE PLAYER" small text button at bottom
   const renderPlayerFormModalContent = () => {
     const isCreate = modalState.mode === 'create';
     const title = isCreate ? 'NEW PLAYER' : 'EDIT PLAYER';
@@ -257,7 +248,6 @@ function PlayersPage() {
           Enter a name and add an avatar (optional)
         </div>
 
-        {/* show preview ONLY if photo exists (matches your reference) */}
         {avatarData ? (
           <div className="player-modal__preview">
             <div className="player-modal__previewCircle" aria-hidden>
@@ -271,9 +261,8 @@ function PlayersPage() {
             value={name}
             onChange={(e) => setName(e.target.value.toUpperCase())}
             required
-            placeholder="PLAYER NAME"
+            placeholder="Player Name"
             className="player-modal__input"
-            style={{ textTransform: 'uppercase' }}
           />
         </Form.Group>
 
@@ -312,11 +301,15 @@ function PlayersPage() {
           <Button
             type="submit"
             className="player-modal__saveBtn"
-            disabled={(creating || updating) || !name.trim()}
+            disabled={creating || updating || !name.trim()}
           >
             {isCreate
-              ? creating ? 'SAVING...' : 'SAVE'
-              : updating ? 'UPDATING...' : 'SAVE'}
+              ? creating
+                ? 'SAVING...'
+                : 'SAVE'
+              : updating
+                ? 'UPDATING...'
+                : 'SAVE'}
           </Button>
 
           <button
@@ -337,7 +330,6 @@ function PlayersPage() {
                   players.find((x) => x.id === modalState.playerId) ?? null;
                 if (!player) return;
 
-                // close edit modal then open confirm modal
                 setModalState((prev) => ({ ...prev, visible: false }));
                 setTimeout(() => {
                   setPlayerToDelete(player);
@@ -421,7 +413,7 @@ function PlayersPage() {
         </Row>
       )}
 
-      {/* Create / Edit Player Modal (redesigned) */}
+      {/* Create / Edit Player Modal */}
       <Modal
         show={modalState.visible}
         onHide={closeMainModal}
@@ -429,8 +421,7 @@ function PlayersPage() {
         dialogClassName="player-form-modal"
       >
         <Form onSubmit={handleSubmit}>
-          {/* keep a close button (top-right) but move all layout into body */}
-          <Modal.Header closeButton className="player-form-modal__header" />
+          {/* removed header close button (no X) */}
           <Modal.Body className="player-form-modal__body">
             {renderPlayerFormModalContent()}
           </Modal.Body>
