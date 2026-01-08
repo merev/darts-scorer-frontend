@@ -30,7 +30,7 @@ function HomePage() {
                 </Button>
               </Col>
 
-              <Col xs={12} sm="auto">
+              {/* <Col xs={12} sm="auto">
                 <Button as={Link} to="/stats" size="lg" className="home-btn tertiary">
                   <FaChartLine className="me-2" />
                   Stats
@@ -42,7 +42,7 @@ function HomePage() {
                   <FaHistory className="me-2" />
                   Game history
                 </Button>
-              </Col>
+              </Col> */}
             </Row>
           </div>
         </Container>

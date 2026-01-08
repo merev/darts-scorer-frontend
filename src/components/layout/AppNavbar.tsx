@@ -106,13 +106,13 @@ function AppNavbar({ theme, onToggleTheme }: AppNavbarProps) {
               Players
             </Nav.Link>
 
-            <Nav.Link
+            {/* <Nav.Link
               as={NavLink}
               to="/stats"
               onClick={closeAndBlurToggle}
             >
               Stats
-            </Nav.Link>
+            </Nav.Link> */}
           </Nav>
         </Navbar.Collapse>
       </Container>
