@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Alert, Spinner } from 'react-bootstrap';
 
-import { useGame, usePostThrow, useUndoThrow } from '../api/games';
+import { useGame, usePostThrow } from '../api/games';
 import { useToast } from '../components/ToastProvider';
 import type { GameState, SetScore } from '../types/darts';
 
@@ -44,14 +44,18 @@ export default function GamePage() {
 
   const gameId = (params.id || (params as any).gameId || '') as string;
 
-  // hooks (always called)
+  // Full-bleed mode only for this route (removes the white padding area)
+  useEffect(() => {
+    document.body.classList.add('route-game');
+    return () => document.body.classList.remove('route-game');
+  }, []);
+
   const { data: game, isLoading, isError, error } = useGame(gameId);
   const { mutate: postThrow, isPending: posting } = usePostThrow(gameId);
-  const { mutate: undoThrow, isPending: undoing } = useUndoThrow(gameId);
 
   const [input, setInput] = useState<string>('0');
 
-  // ✅ IMPORTANT: keep hooks before any conditional return
+  // keep hooks stable
   const scoreByPlayerId = useMemo(() => {
     const m = new Map<string, any>();
     const scores = game?.scores ?? [];
@@ -69,17 +73,13 @@ export default function GamePage() {
 
   const quick = useMemo(() => [26, 41, 45, 60, 81, 85], []);
 
-  // show toast for load error (side effect goes in effect, not render)
   useEffect(() => {
-    if (isError) {
-      showToast('Could not load game. Please try again.', 'danger');
-    }
+    if (isError) showToast('Could not load game. Please try again.', 'danger');
   }, [isError, showToast]);
 
-  // ---------- render branches (safe now) ----------
   if (!gameId) {
     return (
-      <div className="gp-wrap">
+      <div className="gp-wrap gp-center">
         <Alert variant="danger">No game id in URL.</Alert>
       </div>
     );
@@ -96,7 +96,7 @@ export default function GamePage() {
 
   if (isError || !game) {
     return (
-      <div className="gp-wrap">
+      <div className="gp-wrap gp-center">
         <Alert variant="danger">
           <Alert.Heading>Could not load game</Alert.Heading>
           <div className="mb-0 small text-muted">
@@ -107,7 +107,6 @@ export default function GamePage() {
     );
   }
 
-  // ---------- actual UI ----------
   const isFinished = game.status === 'finished';
 
   const currentPlayer =
@@ -165,19 +164,6 @@ export default function GamePage() {
     );
   };
 
-  const onUndo = () => {
-    if (undoing || posting) return;
-    undoThrow(undefined, {
-      onSuccess() {
-        showToast('Last throw undone.', 'info');
-      },
-      onError(err: any) {
-        console.error('Failed to undo throw', err);
-        showToast('Failed to undo last throw.', 'danger');
-      },
-    });
-  };
-
   return (
     <div className="gp-wrap">
       <div className="gp-top">
@@ -233,15 +219,6 @@ export default function GamePage() {
 
       <div className="gp-inputRow">
         <div className="gp-input">{input}</div>
-
-        <button
-          type="button"
-          className="gp-undo"
-          onClick={onUndo}
-          disabled={undoing || posting || (game.history?.length ?? 0) === 0}
-        >
-          UNDO
-        </button>
       </div>
 
       <div className="gp-pad">
