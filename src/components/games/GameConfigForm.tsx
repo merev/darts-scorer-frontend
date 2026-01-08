@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Modal } from 'react-bootstrap';
 import type { GameConfig, Player } from '../../types/darts';
 
 import '../../styles/NewGamePage.css';
@@ -45,6 +46,7 @@ export default function GameConfigForm({
 
   // Players
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+  const [showPlayersModal, setShowPlayersModal] = useState(false);
 
   // Format
   const [formatMode, setFormatMode] = useState<FormatMode>('first_to_win');
@@ -82,7 +84,7 @@ export default function GameConfigForm({
     const legs =
       formatMode === 'best_of'
         ? Math.ceil(bestOfLegs / 2)
-        : clamp(legsToWin, 1, 99);
+        : clamp(legsToWin, 1, 199);
 
     // Standard config (backend already understands this)
     const config: any = {
@@ -101,7 +103,6 @@ export default function GameConfigForm({
 
     // Randomize player order (no “orders” logic for now)
     const randomized = shuffle(selectedPlayerIds);
-
     onSubmit(config as GameConfig, randomized);
   };
 
@@ -121,213 +122,255 @@ export default function GameConfigForm({
   };
 
   return (
-    <div className="ng-panel">
-      {/* GAME TYPE */}
-      <div className="ng-section">
-        <div className="ng-section__title">X01</div>
+    <>
+      <div className="ng-panel">
+        {/* GAME TYPE */}
+        <div className="ng-section">
+          <div className="ng-section__title">X01</div>
 
-        <div className="ng-row ng-row--center">
-          {X01_OPTIONS.map((v) => (
+          <div className="ng-row ng-row--center">
+            {X01_OPTIONS.map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={`ng-circle ${startingScore === v ? 'is-active' : ''}`}
+                onClick={() => setStartingScore(v)}
+                aria-label={`${v}`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* IN / OUT */}
+        <div className="ng-section">
+          <div className="ng-section__title">GAME IN</div>
+          <div className="ng-row ng-row--center">
             <button
-              key={v}
               type="button"
-              className={`ng-circle ${startingScore === v ? 'is-active' : ''}`}
-              onClick={() => setStartingScore(v)}
-              aria-label={`${v}`}
+              className={`ng-pill ${gameIn === 'straight' ? 'is-active' : ''}`}
+              onClick={() => setGameIn('straight')}
             >
-              {v}
+              STRAIGHT
             </button>
-          ))}
-        </div>
-      </div>
+            <button
+              type="button"
+              className={`ng-pill ${gameIn === 'double' ? 'is-active' : ''}`}
+              onClick={() => setGameIn('double')}
+            >
+              DOUBLE
+            </button>
+          </div>
 
-      {/* IN / OUT */}
-      <div className="ng-section">
-        <div className="ng-section__title">GAME IN</div>
-        <div className="ng-row ng-row--center">
-          <button
-            type="button"
-            className={`ng-pill ${gameIn === 'straight' ? 'is-active' : ''}`}
-            onClick={() => setGameIn('straight')}
-          >
-            STRAIGHT
-          </button>
-          <button
-            type="button"
-            className={`ng-pill ${gameIn === 'double' ? 'is-active' : ''}`}
-            onClick={() => setGameIn('double')}
-          >
-            DOUBLE
-          </button>
-        </div>
-
-        <div className="ng-section__title ng-mt">GAME OUT</div>
-        <div className="ng-row ng-row--center">
-          <button
-            type="button"
-            className={`ng-pill ${gameOut === 'straight' ? 'is-active' : ''}`}
-            onClick={() => setGameOut('straight')}
-          >
-            STRAIGHT
-          </button>
-          <button
-            type="button"
-            className={`ng-pill ${gameOut === 'double' ? 'is-active' : ''}`}
-            onClick={() => setGameOut('double')}
-          >
-            DOUBLE
-          </button>
-        </div>
-      </div>
-
-      {/* PLAYERS */}
-      <div className="ng-section">
-        <div className="ng-section__title">PLAYER</div>
-        <div className="ng-section__subtitle">
-          Choose at least one player or add a new one.
+          <div className="ng-section__title ng-mt">GAME OUT</div>
+          <div className="ng-row ng-row--center">
+            <button
+              type="button"
+              className={`ng-pill ${gameOut === 'straight' ? 'is-active' : ''}`}
+              onClick={() => setGameOut('straight')}
+            >
+              STRAIGHT
+            </button>
+            <button
+              type="button"
+              className={`ng-pill ${gameOut === 'double' ? 'is-active' : ''}`}
+              onClick={() => setGameOut('double')}
+            >
+              DOUBLE
+            </button>
+          </div>
         </div>
 
-        <div className="ng-players">
-          {players.map((p) => {
-            const active = selectedPlayerIds.includes(p.id);
-            return (
-              <button
-                key={p.id}
-                type="button"
-                className={`ng-player ${active ? 'is-active' : ''}`}
-                onClick={() => togglePlayer(p.id)}
-                aria-label={`Toggle player ${p.name}`}
-              >
-                {renderAvatar(p)}
-                <div className="ng-player__name">{String(p.name).toUpperCase()}</div>
-              </button>
-            );
-          })}
+        {/* PLAYERS (button only) */}
+        <div className="ng-section">
+          <div className="ng-section__title">PLAYER</div>
+          <div className="ng-section__subtitle">
+            Choose at least one player or add a new one.
+          </div>
+
+          <div className="ng-row ng-row--center">
+            <button
+              type="button"
+              className="ng-pill ng-pill--wide"
+              onClick={() => setShowPlayersModal(true)}
+            >
+              {selectedPlayerIds.length > 0
+                ? `SELECT PLAYERS (${selectedPlayerIds.length})`
+                : 'SELECT PLAYERS'}
+            </button>
+          </div>
+
+          {selectedPlayerIds.length === 0 && (
+            <div className="ng-hint">No players selected.</div>
+          )}
         </div>
 
-        {selectedPlayers.length === 0 && (
-          <div className="ng-hint">No players selected.</div>
-        )}
-      </div>
+        {/* FORMAT (no divider under this section) */}
+        <div className="ng-section ng-section--noDivider">
+          <div className="ng-tabs">
+            <button
+              type="button"
+              className={`ng-tab ${formatMode === 'first_to_win' ? 'is-active' : ''}`}
+              onClick={() => setFormatMode('first_to_win')}
+            >
+              FIRST TO WIN
+            </button>
+            <button
+              type="button"
+              className={`ng-tab ${formatMode === 'best_of' ? 'is-active' : ''}`}
+              onClick={() => setFormatMode('best_of')}
+            >
+              BEST OF
+            </button>
+          </div>
 
-      {/* FORMAT */}
-      <div className="ng-section">
-        <div className="ng-tabs">
-          <button
-            type="button"
-            className={`ng-tab ${formatMode === 'first_to_win' ? 'is-active' : ''}`}
-            onClick={() => setFormatMode('first_to_win')}
-          >
-            FIRST TO WIN
-          </button>
-          <button
-            type="button"
-            className={`ng-tab ${formatMode === 'best_of' ? 'is-active' : ''}`}
-            onClick={() => setFormatMode('best_of')}
-          >
-            BEST OF
-          </button>
-        </div>
+          <div className="ng-format">
+            <div className="ng-format__block">
+              <div className="ng-format__label">SETS</div>
+              <div className="ng-format__control">
+                <button
+                  type="button"
+                  className="ng-miniCircle"
+                  onClick={() => {
+                    if (formatMode === 'best_of') {
+                      setBestOfSets((v) => ensureOdd(clamp(v - 2, 1, 99)));
+                    } else {
+                      setSetsToWin((v) => clamp(v - 1, 1, 99));
+                    }
+                  }}
+                  aria-label="Decrease sets"
+                >
+                  −
+                </button>
 
-        <div className="ng-format">
-          <div className="ng-format__block">
-            <div className="ng-format__label">SETS</div>
-            <div className="ng-format__control">
-              <button
-                type="button"
-                className="ng-miniCircle"
-                onClick={() => {
-                  if (formatMode === 'best_of') {
-                    setBestOfSets((v) => ensureOdd(clamp(v - 2, 1, 99)));
-                  } else {
-                    setSetsToWin((v) => clamp(v - 1, 1, 99));
-                  }
-                }}
-                aria-label="Decrease sets"
-              >
-                −
-              </button>
+                <div className="ng-format__value">
+                  {formatMode === 'best_of' ? bestOfSets : setsToWin}
+                </div>
 
-              <div className="ng-format__value">
-                {formatMode === 'best_of' ? bestOfSets : setsToWin}
+                <button
+                  type="button"
+                  className="ng-miniCircle"
+                  onClick={() => {
+                    if (formatMode === 'best_of') {
+                      setBestOfSets((v) => ensureOdd(clamp(v + 2, 1, 99)));
+                    } else {
+                      setSetsToWin((v) => clamp(v + 1, 1, 99));
+                    }
+                  }}
+                  aria-label="Increase sets"
+                >
+                  +
+                </button>
               </div>
+            </div>
 
-              <button
-                type="button"
-                className="ng-miniCircle"
-                onClick={() => {
-                  if (formatMode === 'best_of') {
-                    setBestOfSets((v) => ensureOdd(clamp(v + 2, 1, 99)));
-                  } else {
-                    setSetsToWin((v) => clamp(v + 1, 1, 99));
-                  }
-                }}
-                aria-label="Increase sets"
-              >
-                +
-              </button>
+            <div className="ng-format__block">
+              <div className="ng-format__label">LEGS</div>
+              <div className="ng-format__control">
+                <button
+                  type="button"
+                  className="ng-miniCircle"
+                  onClick={() => {
+                    if (formatMode === 'best_of') {
+                      setBestOfLegs((v) => ensureOdd(clamp(v - 2, 1, 199)));
+                    } else {
+                      setLegsToWin((v) => clamp(v - 1, 1, 199));
+                    }
+                  }}
+                  aria-label="Decrease legs"
+                >
+                  −
+                </button>
+
+                <div className="ng-format__value">
+                  {formatMode === 'best_of' ? bestOfLegs : legsToWin}
+                </div>
+
+                <button
+                  type="button"
+                  className="ng-miniCircle"
+                  onClick={() => {
+                    if (formatMode === 'best_of') {
+                      setBestOfLegs((v) => ensureOdd(clamp(v + 2, 1, 199)));
+                    } else {
+                      setLegsToWin((v) => clamp(v + 1, 1, 199));
+                    }
+                  }}
+                  aria-label="Increase legs"
+                >
+                  +
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="ng-format__block">
-            <div className="ng-format__label">LEGS</div>
-            <div className="ng-format__control">
-              <button
-                type="button"
-                className="ng-miniCircle"
-                onClick={() => {
-                  if (formatMode === 'best_of') {
-                    setBestOfLegs((v) => ensureOdd(clamp(v - 2, 1, 199)));
-                  } else {
-                    setLegsToWin((v) => clamp(v - 1, 1, 199));
-                  }
-                }}
-                aria-label="Decrease legs"
-              >
-                −
-              </button>
-
-              <div className="ng-format__value">
-                {formatMode === 'best_of' ? bestOfLegs : legsToWin}
-              </div>
-
-              <button
-                type="button"
-                className="ng-miniCircle"
-                onClick={() => {
-                  if (formatMode === 'best_of') {
-                    setBestOfLegs((v) => ensureOdd(clamp(v + 2, 1, 199)));
-                  } else {
-                    setLegsToWin((v) => clamp(v + 1, 1, 199));
-                  }
-                }}
-                aria-label="Increase legs"
-              >
-                +
-              </button>
+          {formatMode === 'best_of' && (
+            <div className="ng-hint">
+              Best of values should be odd (e.g. 3, 5, 7…). We’ll calculate “first to win”
+              automatically when creating the game.
             </div>
-          </div>
+          )}
         </div>
 
-        {formatMode === 'best_of' && (
-          <div className="ng-hint">
-            Best of values should be odd (e.g. 3, 5, 7…). We’ll calculate “first to win”
-            automatically when creating the game.
-          </div>
-        )}
+        {/* START */}
+        <div className="ng-bottom">
+          <button
+            type="button"
+            className={`ng-start ${canStart ? '' : 'is-disabled'}`}
+            onClick={handleSubmit}
+            disabled={!canStart}
+          >
+            {submitting ? 'CREATING...' : 'START GAME'}{' '}
+            <span className="ng-start__chev">›</span>
+          </button>
+        </div>
       </div>
 
-      {/* START */}
-      <div className="ng-bottom">
-        <button
-          type="button"
-          className={`ng-start ${canStart ? '' : 'is-disabled'}`}
-          onClick={handleSubmit}
-          disabled={!canStart}
-        >
-          {submitting ? 'CREATING...' : 'START GAME'} <span className="ng-start__chev">›</span>
-        </button>
-      </div>
-    </div>
+      {/* PLAYERS MODAL */}
+      <Modal
+        show={showPlayersModal}
+        onHide={() => setShowPlayersModal(false)}
+        centered
+        dialogClassName="ng-playersModal"
+      >
+        <Modal.Body className="ng-playersModal__body">
+          <div className="ng-playersModal__title">PLAYER</div>
+          <div className="ng-playersModal__subtitle">
+            Choose at least one player or add a new one.
+          </div>
+
+          <div className="ng-players">
+            {players.map((p) => {
+              const active = selectedPlayerIds.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`ng-player ${active ? 'is-active' : ''}`}
+                  onClick={() => togglePlayer(p.id)}
+                  aria-label={`Toggle player ${p.name}`}
+                >
+                  {renderAvatar(p)}
+                  <div className="ng-player__name">
+                    {String(p.name).toUpperCase()}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="ng-playersModal__footer">
+            <button
+              type="button"
+              className="ng-pill ng-pill--wide"
+              onClick={() => setShowPlayersModal(false)}
+            >
+              DONE
+            </button>
+          </div>
+        </Modal.Body>
+      </Modal>
+    </>
   );
 }

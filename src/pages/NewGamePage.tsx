@@ -31,6 +31,8 @@ function NewGamePage() {
 
   return (
     <Container className="ng-page">
+      <div className="ng-pageTitle">NEW GAME</div>
+
       {loadingPlayers && <div className="ng-loading">Loading players...</div>}
 
       {(isError || hasBadShape) && (
