@@ -10,7 +10,6 @@ export interface GameConfigFormProps {
   submitting?: boolean;
 }
 
-type InOut = 'straight' | 'double';
 type FormatMode = 'first_to_win' | 'best_of';
 
 const X01_OPTIONS = [301, 501, 701] as const;
@@ -40,9 +39,9 @@ export default function GameConfigForm({
   // Only X01 standard games
   const [startingScore, setStartingScore] = useState<number>(501);
 
-  // In / Out
-  const [gameIn, setGameIn] = useState<InOut>('straight');
-  const [gameOut, setGameOut] = useState<InOut>('double'); // maps to existing doubleOut
+  // In / Out toggles (false=straight, true=double)
+  const [doubleIn, setDoubleIn] = useState<boolean>(false);
+  const [doubleOut, setDoubleOut] = useState<boolean>(true);
 
   // Players
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
@@ -60,7 +59,10 @@ export default function GameConfigForm({
   const [bestOfLegs, setBestOfLegs] = useState<number>(9);
 
   const selectedPlayers = useMemo(
-    () => players.filter((p) => selectedPlayerIds.includes(p.id)),
+    () =>
+      selectedPlayerIds
+        .map((id) => players.find((p) => p.id === id))
+        .filter(Boolean) as Player[],
     [players, selectedPlayerIds]
   );
 
@@ -75,7 +77,6 @@ export default function GameConfigForm({
   const handleSubmit = () => {
     if (!canStart) return;
 
-    // Convert UI format -> backend config fields (keeps backend compatible)
     const sets =
       formatMode === 'best_of'
         ? Math.ceil(bestOfSets / 2)
@@ -86,22 +87,20 @@ export default function GameConfigForm({
         ? Math.ceil(bestOfLegs / 2)
         : clamp(legsToWin, 1, 199);
 
-    // Standard config (backend already understands this)
     const config: any = {
       mode: 'X01',
       startingScore,
       sets,
       legs,
-      doubleOut: gameOut === 'double',
+      doubleOut, // backend-understood field
 
-      // Extra fields (safe if backend ignores unknown keys)
-      doubleIn: gameIn === 'double',
+      // extra but safe:
+      doubleIn,
       format: formatMode,
       bestOfSets: formatMode === 'best_of' ? bestOfSets : undefined,
       bestOfLegs: formatMode === 'best_of' ? bestOfLegs : undefined,
     };
 
-    // Randomize player order (no “orders” logic for now)
     const randomized = shuffle(selectedPlayerIds);
     onSubmit(config as GameConfig, randomized);
   };
@@ -143,46 +142,46 @@ export default function GameConfigForm({
           </div>
         </div>
 
-        {/* IN / OUT */}
+        {/* IN / OUT (toggles) */}
         <div className="ng-section">
-          <div className="ng-section__title">GAME IN</div>
-          <div className="ng-row ng-row--center">
-            <button
-              type="button"
-              className={`ng-pill ${gameIn === 'straight' ? 'is-active' : ''}`}
-              onClick={() => setGameIn('straight')}
-            >
-              STRAIGHT
-            </button>
-            <button
-              type="button"
-              className={`ng-pill ${gameIn === 'double' ? 'is-active' : ''}`}
-              onClick={() => setGameIn('double')}
-            >
-              DOUBLE
-            </button>
-          </div>
+          <div className="ng-toggleRow">
+            <div className="ng-toggleCard">
+              <div className="ng-toggleCard__title">GAME IN</div>
 
-          <div className="ng-section__title ng-mt">GAME OUT</div>
-          <div className="ng-row ng-row--center">
-            <button
-              type="button"
-              className={`ng-pill ${gameOut === 'straight' ? 'is-active' : ''}`}
-              onClick={() => setGameOut('straight')}
-            >
-              STRAIGHT
-            </button>
-            <button
-              type="button"
-              className={`ng-pill ${gameOut === 'double' ? 'is-active' : ''}`}
-              onClick={() => setGameOut('double')}
-            >
-              DOUBLE
-            </button>
+              <label className="ng-switch" aria-label="Toggle game in (straight/double)">
+                <input
+                  type="checkbox"
+                  checked={doubleIn}
+                  onChange={(e) => setDoubleIn(e.target.checked)}
+                />
+                <span className="ng-switch__slider" />
+              </label>
+
+              <div className="ng-toggleCard__value">
+                {doubleIn ? 'DOUBLE' : 'STRAIGHT'}
+              </div>
+            </div>
+
+            <div className="ng-toggleCard">
+              <div className="ng-toggleCard__title">GAME OUT</div>
+
+              <label className="ng-switch" aria-label="Toggle game out (straight/double)">
+                <input
+                  type="checkbox"
+                  checked={doubleOut}
+                  onChange={(e) => setDoubleOut(e.target.checked)}
+                />
+                <span className="ng-switch__slider" />
+              </label>
+
+              <div className="ng-toggleCard__value">
+                {doubleOut ? 'DOUBLE' : 'STRAIGHT'}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* PLAYERS (button only) */}
+        {/* PLAYERS (button + selected players preview) */}
         <div className="ng-section">
           <div className="ng-section__title">PLAYER</div>
           <div className="ng-section__subtitle">
@@ -201,7 +200,19 @@ export default function GameConfigForm({
             </button>
           </div>
 
-          {selectedPlayerIds.length === 0 && (
+          {/* NEW: show selected players under the section */}
+          {selectedPlayers.length > 0 ? (
+            <div className="ng-selectedPlayers">
+              {selectedPlayers.map((p) => (
+                <div key={p.id} className="ng-selectedPlayer">
+                  {renderAvatar(p)}
+                  <div className="ng-selectedPlayer__name">
+                    {String(p.name).toUpperCase()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
             <div className="ng-hint">No players selected.</div>
           )}
         </div>
@@ -352,9 +363,7 @@ export default function GameConfigForm({
                   aria-label={`Toggle player ${p.name}`}
                 >
                   {renderAvatar(p)}
-                  <div className="ng-player__name">
-                    {String(p.name).toUpperCase()}
-                  </div>
+                  <div className="ng-player__name">{String(p.name).toUpperCase()}</div>
                 </button>
               );
             })}
