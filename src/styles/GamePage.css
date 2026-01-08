@@ -241,3 +241,11 @@ body.route-game #root {
 .gp-finishBtn--primary {
   background: rgba(255, 255, 255, 0.10);
 }
+
+.gp-between__line {
+  margin-top: 10px;
+  color: var(--text-muted);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+

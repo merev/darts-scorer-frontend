@@ -37,19 +37,14 @@ function getCurrentLegNumber(game: GameState) {
   return leg?.legNumber ?? ms.currentLegIndex + 1;
 }
 
-/**
- * Compute all achievable X01 visit scores with up to 3 darts.
- * Dart values: 0 (miss), 1-20 singles, doubles, triples, bull 25/50.
- */
 function computePossibleVisitScores(): Set<number> {
   const dartValues = new Set<number>();
-
   dartValues.add(0);
 
   for (let n = 1; n <= 20; n++) {
-    dartValues.add(n); // single
-    dartValues.add(2 * n); // double
-    dartValues.add(3 * n); // triple
+    dartValues.add(n);
+    dartValues.add(2 * n);
+    dartValues.add(3 * n);
   }
   dartValues.add(25);
   dartValues.add(50);
@@ -57,38 +52,42 @@ function computePossibleVisitScores(): Set<number> {
   const values = Array.from(dartValues);
   const possible = new Set<number>();
 
-  for (const a of values) {
-    for (const b of values) {
-      for (const c of values) {
-        possible.add(a + b + c);
-      }
-    }
-  }
-
-  // Safety: should include 0..180 but with holes (e.g. 179, 185 etc.)
+  for (const a of values) for (const b of values) for (const c of values) possible.add(a + b + c);
   return possible;
 }
 
 function getWinnerId(game: GameState): string | null {
   const anyGame: any = game;
-  return (
-    anyGame.winnerId ??
-    anyGame.winner?.id ??
-    anyGame.matchScore?.winnerId ??
-    null
-  );
+  return anyGame.winnerId ?? anyGame.winner?.id ?? anyGame.matchScore?.winnerId ?? null;
 }
 
 function formatResultLine(game: GameState): string {
   const anyGame: any = game;
-
-  // If backend provides a scoreline string, use it
   if (typeof anyGame.result === 'string') return anyGame.result;
 
-  // Otherwise show a simple line
   const p1 = game.players?.[0]?.name ?? 'Player 1';
   const p2 = game.players?.[1]?.name ?? 'Player 2';
   return `${p1} vs ${p2}`;
+}
+
+type BetweenLegsModalInfo = {
+  kind: 'leg' | 'set';
+  winnerName: string;
+  leftName: string;
+  rightName: string;
+  leftLegsWon: number;
+  rightLegsWon: number;
+  leftSetsWon: number;
+  rightSetsWon: number;
+};
+
+function countSetsWon(matchScore: any, playerId: string): number {
+  const sets = matchScore?.sets ?? [];
+  let won = 0;
+  for (const s of sets) {
+    if (s?.winnerId === playerId) won += 1;
+  }
+  return won;
 }
 
 export default function GamePage() {
@@ -98,7 +97,7 @@ export default function GamePage() {
 
   const gameId = (params.id || (params as any).gameId || '') as string;
 
-  // Full-bleed mode only for this route (removes padding/white frame)
+  // Full-bleed mode only for this route
   useEffect(() => {
     document.body.classList.add('route-game');
     return () => document.body.classList.remove('route-game');
@@ -113,6 +112,10 @@ export default function GamePage() {
   // Finish modal
   const [showFinishModal, setShowFinishModal] = useState(false);
   const prevStatusRef = useRef<string | null>(null);
+
+  // Between-legs/sets modal
+  const [betweenModal, setBetweenModal] = useState<BetweenLegsModalInfo | null>(null);
+  const prevMatchScoreRef = useRef<any>(null);
 
   const possibleScores = useMemo(() => computePossibleVisitScores(), []);
 
@@ -133,14 +136,11 @@ export default function GamePage() {
 
   const quick = useMemo(() => [26, 41, 45, 60, 81, 85], []);
 
-  // show toast for load error only
   useEffect(() => {
-    if (isError) {
-      showToast('Could not load game. Please try again.', 'danger');
-    }
+    if (isError) showToast('Could not load game. Please try again.', 'danger');
   }, [isError, showToast]);
 
-  // detect game finished => open modal once
+  // Detect game finished => open finish modal once
   useEffect(() => {
     if (!game) return;
 
@@ -152,6 +152,85 @@ export default function GamePage() {
     }
 
     prevStatusRef.current = curr;
+  }, [game]);
+
+  // Detect leg/set transition (when backend advances current leg/set)
+  useEffect(() => {
+    if (!game) return;
+
+    const ms: any = (game as any).matchScore;
+    if (!ms?.sets) return;
+
+    // Don't show between-legs modal if the game is finished
+    if (game.status === 'finished') {
+      prevMatchScoreRef.current = ms;
+      return;
+    }
+
+    const prevMs = prevMatchScoreRef.current;
+    if (!prevMs?.sets) {
+      prevMatchScoreRef.current = ms;
+      return;
+    }
+
+    const prevSetIdx = prevMs.currentSetIndex;
+    const prevLegIdx = prevMs.currentLegIndex;
+    const currSetIdx = ms.currentSetIndex;
+    const currLegIdx = ms.currentLegIndex;
+
+    const advanced =
+      prevSetIdx !== currSetIdx || prevLegIdx !== currLegIdx;
+
+    if (!advanced) {
+      prevMatchScoreRef.current = ms;
+      return;
+    }
+
+    // Previous leg winner is stored on the leg that just completed
+    const prevSet = prevMs.sets?.[prevSetIdx];
+    const prevLeg = prevSet?.legs?.[prevLegIdx];
+    const winnerId: string | undefined = prevLeg?.winnerId;
+
+    if (!winnerId) {
+      prevMatchScoreRef.current = ms;
+      return;
+    }
+
+    const left = game.players?.[0];
+    const right = game.players?.[1];
+    if (!left || !right) {
+      prevMatchScoreRef.current = ms;
+      return;
+    }
+
+    const winnerName = game.players.find((p) => p.id === winnerId)?.name ?? 'Winner';
+
+    // Determine if it was a set transition (set index changed OR leg index reset)
+    const isSetTransition =
+      prevSetIdx !== currSetIdx || (prevLegIdx !== currLegIdx && currLegIdx === 0);
+
+    const prevLegsWon = computeLegsWonInSet(prevSet as any);
+    const leftLegsWon = prevLegsWon[left.id] ?? 0;
+    const rightLegsWon = prevLegsWon[right.id] ?? 0;
+
+    const leftSetsWon = countSetsWon(prevMs, left.id);
+    const rightSetsWon = countSetsWon(prevMs, right.id);
+
+    setBetweenModal({
+      kind: isSetTransition ? 'set' : 'leg',
+      winnerName,
+      leftName: left.name,
+      rightName: right.name,
+      leftLegsWon,
+      rightLegsWon,
+      leftSetsWon,
+      rightSetsWon,
+    });
+
+    // Reset input when changing legs/sets
+    setInput('0');
+
+    prevMatchScoreRef.current = ms;
   }, [game]);
 
   if (!gameId) {
@@ -185,6 +264,7 @@ export default function GamePage() {
   }
 
   const isFinished = game.status === 'finished';
+  const isBlockedByModal = !!betweenModal || showFinishModal;
 
   const currentPlayer =
     game.players.find((p) => p.id === game.currentPlayerId) ?? game.players[0];
@@ -207,28 +287,23 @@ export default function GamePage() {
   };
 
   const setDigit = (d: string) => {
-    if (isFinished || posting || undoing) return;
+    if (isFinished || posting || undoing || isBlockedByModal) return;
 
     const next = input === '0' ? d : input + d;
-
-    // max 3 digits
     if (next.length > 3) return;
 
     const nextNum = Number(next);
     if (!Number.isFinite(nextNum)) return;
-
-    // block > 180 early
     if (nextNum > 180) return;
 
-    // If user is forming 3 digits, block impossible totals (e.g. 179, 185)
+    // If forming 3 digits, block impossible totals (179, 185, ...)
     if (next.length === 3 && !possibleScores.has(nextNum)) return;
 
     setInput(next);
   };
 
   const setQuick = (n: number) => {
-    if (isFinished || posting || undoing) return;
-    // quick picks are valid; still guard just in case
+    if (isFinished || posting || undoing || isBlockedByModal) return;
     if (!canSubmitValue(n)) return;
     setInput(String(n));
   };
@@ -238,12 +313,10 @@ export default function GamePage() {
   };
 
   const undoOneThrow = () => {
-    if (isFinished || posting || undoing) return;
+    if (isFinished || posting || undoing || isBlockedByModal) return;
 
     undoThrow(undefined, {
       onSuccess: (newState: any) => {
-        // After undo, show the *previous* (now-last) visit score in the input
-        // so the user can keep undoing back to the beginning.
         const hist = newState?.history;
         const last = Array.isArray(hist) ? hist[hist.length - 1] : null;
 
@@ -261,34 +334,23 @@ export default function GamePage() {
       },
       onError: (err: any) => {
         console.error('Failed to undo', err);
-        // keep toast for errors
         showToast('Nothing to undo.', 'info');
       },
     });
   };
 
-  /**
-   * LEFT ARROW behavior:
-   *  - if input != 0 => backspace
-   *  - if input == 0 => undo one throw and load previous visit score into input
-   */
+  // LEFT ARROW: backspace; if already 0 => undo
   const onLeftArrow = () => {
-    if (isFinished || posting || undoing) return;
-
-    if (input !== '0') {
-      backspaceOnly();
-      return;
-    }
-
+    if (isFinished || posting || undoing || isBlockedByModal) return;
+    if (input !== '0') return backspaceOnly();
     undoOneThrow();
   };
 
   const submit = () => {
-    if (isFinished || posting || undoing) return;
+    if (isFinished || posting || undoing || isBlockedByModal) return;
 
     const value = Number(input);
     if (!canSubmitValue(value)) {
-      // no toast on normal scoring, but this is a validation error
       showToast('Invalid score.', 'warning');
       return;
     }
@@ -299,7 +361,7 @@ export default function GamePage() {
       { playerId: currentPlayer.id, visitScore: value, dartsThrown: 3 },
       {
         onSuccess() {
-          // ✅ NO toast for successful scoring
+          // no toast on scoring
           setInput('0');
         },
         onError(err: any) {
@@ -310,7 +372,6 @@ export default function GamePage() {
     );
   };
 
-  // Finish modal content
   const winnerId = getWinnerId(game);
   const winnerName =
     (winnerId && game.players.find((p) => p.id === winnerId)?.name) || null;
@@ -379,7 +440,7 @@ export default function GamePage() {
             type="button"
             className="gp-key gp-key--quick"
             onClick={() => setQuick(n)}
-            disabled={posting || undoing || isFinished}
+            disabled={posting || undoing || isFinished || isBlockedByModal}
           >
             {n}
           </button>
@@ -391,7 +452,7 @@ export default function GamePage() {
             type="button"
             className="gp-key"
             onClick={() => setDigit(d)}
-            disabled={posting || undoing || isFinished}
+            disabled={posting || undoing || isFinished || isBlockedByModal}
           >
             {d}
           </button>
@@ -401,7 +462,7 @@ export default function GamePage() {
           type="button"
           className="gp-key gp-key--action"
           onClick={onLeftArrow}
-          disabled={posting || undoing || isFinished}
+          disabled={posting || undoing || isFinished || isBlockedByModal}
           aria-label="Backspace / Undo"
         >
           ‹
@@ -411,7 +472,7 @@ export default function GamePage() {
           type="button"
           className="gp-key"
           onClick={() => setDigit('0')}
-          disabled={posting || undoing || isFinished}
+          disabled={posting || undoing || isFinished || isBlockedByModal}
         >
           0
         </button>
@@ -420,12 +481,56 @@ export default function GamePage() {
           type="button"
           className="gp-key gp-key--action"
           onClick={submit}
-          disabled={posting || undoing || isFinished}
+          disabled={posting || undoing || isFinished || isBlockedByModal}
           aria-label="Submit"
         >
           ›
         </button>
       </div>
+
+      {/* BETWEEN LEGS/SETS MODAL */}
+      <Modal
+        show={!!betweenModal}
+        onHide={() => {}}
+        centered
+        backdrop="static"
+        keyboard={false}
+        contentClassName="gp-finishModal"
+      >
+        <Modal.Header className="gp-finishModal__header">
+          <Modal.Title className="gp-finishModal__title">
+            {betweenModal?.kind === 'set' ? 'Set Finished' : 'Leg Finished'}
+          </Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body className="gp-finishModal__body">
+          <div className="gp-finishModal__winner">
+            Winner:{' '}
+            <span className="gp-finishModal__winnerName">
+              {betweenModal?.winnerName ?? 'N/A'}
+            </span>
+          </div>
+
+          <div className="gp-between__line">
+            {betweenModal?.leftName} {betweenModal?.leftLegsWon ?? 0} –{' '}
+            {betweenModal?.rightLegsWon ?? 0} {betweenModal?.rightName} (legs in set)
+          </div>
+
+          <div className="gp-between__line">
+            Sets: {betweenModal?.leftSetsWon ?? 0} – {betweenModal?.rightSetsWon ?? 0}
+          </div>
+        </Modal.Body>
+
+        <Modal.Footer className="gp-finishModal__footer">
+          <button
+            type="button"
+            className="gp-finishBtn gp-finishBtn--primary"
+            onClick={() => setBetweenModal(null)}
+          >
+            Next
+          </button>
+        </Modal.Footer>
+      </Modal>
 
       {/* FINISH MODAL */}
       <Modal
@@ -437,25 +542,22 @@ export default function GamePage() {
         contentClassName="gp-finishModal"
       >
         <Modal.Header className="gp-finishModal__header">
-          <Modal.Title className="gp-finishModal__title">
-            Game Finished
-          </Modal.Title>
+          <Modal.Title className="gp-finishModal__title">Game Finished</Modal.Title>
         </Modal.Header>
 
         <Modal.Body className="gp-finishModal__body">
           <div className="gp-finishModal__winner">
             {winnerName ? (
               <>
-                Winner: <span className="gp-finishModal__winnerName">{winnerName}</span>
+                Winner:{' '}
+                <span className="gp-finishModal__winnerName">{winnerName}</span>
               </>
             ) : (
               'Winner: N/A'
             )}
           </div>
 
-          <div className="gp-finishModal__result">
-            {formatResultLine(game)}
-          </div>
+          <div className="gp-finishModal__result">{formatResultLine(game)}</div>
         </Modal.Body>
 
         <Modal.Footer className="gp-finishModal__footer">
