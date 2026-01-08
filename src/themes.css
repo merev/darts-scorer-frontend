@@ -2,6 +2,7 @@
    THEME TOKENS (CSS variables)
    ========================= */
 
+/* Default tokens (kept for safety) */
 .app-root {
   /* Base surfaces */
   --bg: #ffffff;
@@ -21,6 +22,7 @@
   --btn-hover-border: var(--border);
 }
 
+/* LIGHT THEME TOKENS (app root) */
 .app-root.theme-light {
   --bg: #ffffff;
   --bg-elev-1: #f7f8fb;
@@ -37,6 +39,7 @@
   --btn-hover-border: var(--border);
 }
 
+/* DARK THEME TOKENS (app root) */
 .app-root.theme-dark {
   --bg: #0b0c0f;        /* PURE solid dark */
   --bg-elev-1: #121418; /* hover surface */
@@ -50,6 +53,51 @@
   --primary-text: #ffffff;
 
   /* still neutral, NOT blue */
+  --btn-hover-bg: #161a20;
+  --btn-hover-border: var(--border);
+}
+
+/* ==========================================================
+   IMPORTANT:
+   React-Bootstrap modals render into <body> (portal).
+   So we ALSO put the same theme tokens on body.theme-*
+   to make modals/theme-aware everywhere.
+   ========================================================== */
+
+/* LIGHT THEME TOKENS (body) */
+body.theme-light {
+  color-scheme: light;
+
+  --bg: #ffffff;
+  --bg-elev-1: #f7f8fb;
+  --bg-elev-2: #ffffff;
+  --text: #111111;
+  --text-muted: rgba(17, 17, 17, 0.7);
+  --border: rgba(17, 17, 17, 0.16);
+  --shadow: none;
+
+  --primary: #0d6efd;
+  --primary-text: #ffffff;
+
+  --btn-hover-bg: var(--bg-elev-1);
+  --btn-hover-border: var(--border);
+}
+
+/* DARK THEME TOKENS (body) */
+body.theme-dark {
+  color-scheme: dark;
+
+  --bg: #0b0c0f;
+  --bg-elev-1: #121418;
+  --bg-elev-2: #0f1115;
+  --text: #eaeaea;
+  --text-muted: rgba(234, 234, 234, 0.72);
+  --border: rgba(234, 234, 234, 0.12);
+  --shadow: none;
+
+  --primary: #0d6efd;
+  --primary-text: #ffffff;
+
   --btn-hover-bg: #161a20;
   --btn-hover-border: var(--border);
 }

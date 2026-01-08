@@ -128,8 +128,7 @@ body,
 .app-main .dropdown-menu,
 .app-main .popover,
 .app-main .toast,
-.app-main .offcanvas,
-.app-main .modal-content {
+.app-main .offcanvas {
   background-color: var(--bg-elev-2) !important;
   color: var(--text) !important;
   border-color: var(--border) !important;
@@ -149,6 +148,50 @@ body,
 /* Links inside main should follow text color (unless you style them explicitly elsewhere) */
 .app-main a {
   color: inherit;
+}
+
+/* -------------------------
+   MODALS (GLOBAL — because they render into <body>)
+   ------------------------- */
+
+.modal-content {
+  background-color: var(--bg-elev-2) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+  box-shadow: var(--shadow);
+}
+
+.modal-header,
+.modal-footer {
+  border-color: var(--border) !important;
+}
+
+.modal-header .btn-close {
+  filter: none;
+}
+
+/* Make the close icon visible in dark mode too */
+body.theme-dark .modal-header .btn-close {
+  filter: invert(1) grayscale(100%);
+}
+
+/* Inputs inside modals should match theme */
+.modal-content .form-control,
+.modal-content .form-select {
+  background-color: var(--bg-elev-2) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+.modal-content .form-control::placeholder,
+.modal-content .form-select::placeholder {
+  color: var(--text-muted) !important;
+}
+
+.modal-content .form-control:focus,
+.modal-content .form-select:focus {
+  border-color: rgba(13, 110, 253, 0.6);
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.2);
 }
 
 /* -------------------------
@@ -205,4 +248,3 @@ body,
 .app-main * {
   transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
 }
-
