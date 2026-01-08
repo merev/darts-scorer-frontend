@@ -125,7 +125,6 @@ export default function GameConfigForm({
       <div className="ng-panel">
         {/* GAME TYPE */}
         <div className="ng-section">
-          <div className="ng-section__title">X01</div>
 
           <div className="ng-row ng-row--center">
             {X01_OPTIONS.map((v) => (
@@ -183,7 +182,7 @@ export default function GameConfigForm({
 
         {/* PLAYERS (button + selected players preview) */}
         <div className="ng-section">
-          <div className="ng-section__title">PLAYER</div>
+          <div className="ng-section__title">PLAYERS</div>
           <div className="ng-section__subtitle">
             Choose at least one player or add a new one.
           </div>
