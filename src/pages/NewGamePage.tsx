@@ -31,36 +31,12 @@ function NewGamePage() {
 
   return (
     <Container className="ng-page">
-      <div className="ng-topbar">
-        <button
-          type="button"
-          className="ng-topbar__back"
-          onClick={() => navigate(-1)}
-        >
-          <span className="ng-topbar__chev">‹</span> BACK
-        </button>
-
-        <button
-          type="button"
-          className="ng-topbar__add"
-          onClick={() => navigate('/players')}
-          aria-label="Go to players"
-          title="Players"
-        >
-          +
-        </button>
-      </div>
-
-      {loadingPlayers && (
-        <div className="ng-loading">Loading players...</div>
-      )}
+      {loadingPlayers && <div className="ng-loading">Loading players...</div>}
 
       {(isError || hasBadShape) && (
         <Alert variant="danger">
           <Alert.Heading>Backend not available</Alert.Heading>
-          <p>
-            Could not load the list of players.
-          </p>
+          <p>Could not load the list of players.</p>
           <div className="mb-0 small text-muted">
             {isError
               ? (error as any)?.message ?? ''
