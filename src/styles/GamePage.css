@@ -183,3 +183,61 @@ body.route-game #root {
 .gp-key:disabled {
   opacity: 0.45;
 }
+
+
+
+/* Finish modal (theme-aware) */
+.gp-finishModal {
+  background: var(--bg-elev-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.gp-finishModal__header,
+.gp-finishModal__footer {
+  border-color: var(--border);
+  background: transparent;
+}
+
+.gp-finishModal__title {
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gp-finishModal__body {
+  color: var(--text);
+}
+
+.gp-finishModal__winner {
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.gp-finishModal__winnerName {
+  color: var(--text);
+}
+
+.gp-finishModal__result {
+  margin-top: 10px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.gp-finishBtn {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--bg-elev-1);
+  color: var(--text);
+}
+
+.gp-finishBtn--primary {
+  background: rgba(255, 255, 255, 0.10);
+}
