@@ -263,6 +263,17 @@ export default function GamePage() {
     if (isError) showToast('Could not load game. Please try again.', 'danger');
   }, [isError, showToast]);
 
+  // Reset UI state when navigating to a different game id
+  useEffect(() => {
+  setShowFinishModal(false);
+  setBetweenModal(null);
+  setInput('0');
+
+  // reset transition detectors
+  prevStatusRef.current = null;
+  prevMatchScoreRef.current = null;
+  }, [gameId]);
+
   // Detect finished => open finish modal once
   useEffect(() => {
     if (!game) return;
@@ -329,6 +340,13 @@ export default function GamePage() {
 
   const handleRestart = async () => {
     if (!game) return;
+
+    // close modal immediately so it doesn't "carry over" visually
+    setShowFinishModal(false);
+    setBetweenModal(null);
+    setInput('0');
+    prevStatusRef.current = null;
+    prevMatchScoreRef.current = null;
 
     const cfg = (game as any).config as GameConfig | undefined;
     const playerIds = (game.players ?? []).map((p) => p.id).filter(Boolean);
