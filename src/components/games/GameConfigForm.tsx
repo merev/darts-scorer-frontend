@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Modal } from 'react-bootstrap';
+import { Modal, Alert } from 'react-bootstrap';
 import type { GameConfig, Player } from '../../types/darts';
 
 import '../../styles/NewGamePage.css';
@@ -13,6 +13,7 @@ export interface GameConfigFormProps {
 type FormatMode = 'first_to_win' | 'best_of';
 
 const X01_OPTIONS = [301, 501, 701] as const;
+const MAX_PLAYERS = 8;
 
 function shuffle<T>(arr: T[]) {
   const a = [...arr];
@@ -46,6 +47,7 @@ export default function GameConfigForm({
   // Players
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [showPlayersModal, setShowPlayersModal] = useState(false);
+  const [playersLimitError, setPlayersLimitError] = useState<string>('');
 
   // Format
   const [formatMode, setFormatMode] = useState<FormatMode>('first_to_win');
@@ -67,15 +69,35 @@ export default function GameConfigForm({
   );
 
   const togglePlayer = (id: string) => {
-    setSelectedPlayerIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setSelectedPlayerIds((prev) => {
+      setPlayersLimitError('');
+
+      const isSelected = prev.includes(id);
+      if (isSelected) {
+        return prev.filter((x) => x !== id);
+      }
+
+      if (prev.length >= MAX_PLAYERS) {
+        setPlayersLimitError(`Maximum ${MAX_PLAYERS} players allowed.`);
+        return prev;
+      }
+
+      return [...prev, id];
+    });
   };
 
-  const canStart = selectedPlayerIds.length >= 1 && !submitting;
+  const canStart =
+    selectedPlayerIds.length >= 1 &&
+    selectedPlayerIds.length <= MAX_PLAYERS &&
+    !submitting;
 
   const handleSubmit = () => {
-    if (!canStart) return;
+    if (!canStart) {
+      if (selectedPlayerIds.length > MAX_PLAYERS) {
+        setPlayersLimitError(`Maximum ${MAX_PLAYERS} players allowed.`);
+      }
+      return;
+    }
 
     const sets =
       formatMode === 'best_of'
@@ -125,7 +147,6 @@ export default function GameConfigForm({
       <div className="ng-panel">
         {/* GAME TYPE */}
         <div className="ng-section">
-
           <div className="ng-row ng-row--center">
             {X01_OPTIONS.map((v) => (
               <button
@@ -184,22 +205,28 @@ export default function GameConfigForm({
         <div className="ng-section">
           <div className="ng-section__title">PLAYERS</div>
           <div className="ng-section__subtitle">
-            Choose at least one player or add a new one.
+            Choose at least one player (max {MAX_PLAYERS}).
           </div>
 
           <div className="ng-row ng-row--center">
             <button
               type="button"
               className="ng-pill ng-pill--wide"
-              onClick={() => setShowPlayersModal(true)}
+              onClick={() => {
+                setPlayersLimitError('');
+                setShowPlayersModal(true);
+              }}
             >
               {selectedPlayerIds.length > 0
-                ? `SELECT PLAYERS (${selectedPlayerIds.length})`
+                ? `SELECT PLAYERS (${selectedPlayerIds.length}/${MAX_PLAYERS})`
                 : 'SELECT PLAYERS'}
             </button>
           </div>
 
-          {/* NEW: show selected players under the section */}
+          {playersLimitError ? (
+            <div className="ng-error">{playersLimitError}</div>
+          ) : null}
+
           {selectedPlayers.length > 0 ? (
             <div className="ng-selectedPlayers">
               {selectedPlayers.map((p) => (
@@ -216,7 +243,7 @@ export default function GameConfigForm({
           )}
         </div>
 
-        {/* FORMAT (no divider under this section) */}
+        {/* FORMAT */}
         <div className="ng-section ng-section--noDivider">
           <div className="ng-tabs">
             <button
@@ -345,14 +372,23 @@ export default function GameConfigForm({
         dialogClassName="ng-playersModal"
       >
         <Modal.Body className="ng-playersModal__body">
-          <div className="ng-playersModal__title">PLAYER</div>
+          <div className="ng-playersModal__title">PLAYERS</div>
           <div className="ng-playersModal__subtitle">
-            Choose at least one player or add a new one.
+            Choose 1–{MAX_PLAYERS} players.
           </div>
+
+          {playersLimitError ? (
+            <Alert variant="warning" className="ng-playersModal__alert">
+              {playersLimitError}
+            </Alert>
+          ) : null}
 
           <div className="ng-players">
             {players.map((p) => {
               const active = selectedPlayerIds.includes(p.id);
+              const atLimit = selectedPlayerIds.length >= MAX_PLAYERS;
+              const disabled = !active && atLimit;
+
               return (
                 <button
                   key={p.id}
@@ -360,6 +396,7 @@ export default function GameConfigForm({
                   className={`ng-player ${active ? 'is-active' : ''}`}
                   onClick={() => togglePlayer(p.id)}
                   aria-label={`Toggle player ${p.name}`}
+                  disabled={disabled}
                 >
                   {renderAvatar(p)}
                   <div className="ng-player__name">{String(p.name).toUpperCase()}</div>
@@ -374,7 +411,7 @@ export default function GameConfigForm({
               className="ng-pill ng-pill--wide"
               onClick={() => setShowPlayersModal(false)}
             >
-              DONE
+              DONE ({selectedPlayerIds.length}/{MAX_PLAYERS})
             </button>
           </div>
         </Modal.Body>

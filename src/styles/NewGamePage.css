@@ -547,3 +547,32 @@
     min-width: 210px;
   }
 }
+
+
+/* Max players error (below select button) */
+.ng-error {
+  margin-top: 10px;
+  text-align: center;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+/* Disabled player button look in modal when max reached */
+.ng-player:disabled {
+  opacity: 0.18 !important;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Optional spacing for alerts */
+.ng-playersModal__alert {
+  margin: 10px auto 12px;
+  max-width: 520px;
+}
+
+.ng-submitAlert {
+  margin-top: 12px;
+}

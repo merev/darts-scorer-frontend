@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Alert, Container } from 'react-bootstrap';
+import { useState } from 'react';
 
 import { usePlayers } from '../api/players';
 import { useCreateGame } from '../api/games';
@@ -8,8 +9,11 @@ import type { GameConfig } from '../types/darts';
 
 import '../styles/NewGamePage.css';
 
+const MAX_PLAYERS = 8;
+
 function NewGamePage() {
   const navigate = useNavigate();
+  const [submitError, setSubmitError] = useState<string>('');
 
   const {
     data,
@@ -25,6 +29,13 @@ function NewGamePage() {
     !loadingPlayers && !isError && data !== undefined && !Array.isArray(data);
 
   const handleCreateGame = async (config: GameConfig, playerIds: string[]) => {
+    setSubmitError('');
+
+    if (playerIds.length > MAX_PLAYERS) {
+      setSubmitError(`Too many players selected (max ${MAX_PLAYERS}).`);
+      return;
+    }
+
     const game = await createGame({ config, playerIds });
     navigate(`/game/${game.id}`);
   };
@@ -46,6 +57,12 @@ function NewGamePage() {
           </div>
         </Alert>
       )}
+
+      {submitError ? (
+        <Alert variant="warning" className="ng-submitAlert">
+          {submitError}
+        </Alert>
+      ) : null}
 
       {!loadingPlayers && !isError && !hasBadShape && (
         <GameConfigForm

@@ -119,12 +119,6 @@ function formatResultLine(game: GameState): string {
 type BetweenLegsModalInfo = {
   kind: 'leg' | 'set';
   winnerName: string;
-  leftName: string;
-  rightName: string;
-  leftLegsWon: number;
-  rightLegsWon: number;
-  leftSetsWon: number;
-  rightSetsWon: number;
 };
 
 function countSetsWon(matchScore: any, playerId: string): number {
@@ -256,34 +250,14 @@ export default function GamePage() {
       return;
     }
 
-    const left = game.players?.[0];
-    const right = game.players?.[1];
-    if (!left || !right) {
-      prevMatchScoreRef.current = ms;
-      return;
-    }
-
     const winnerName = game.players.find((p) => p.id === winnerId)?.name ?? 'Winner';
 
     const isSetTransition =
       prevSetIdx !== currSetIdx || (prevLegIdx !== currLegIdx && currLegIdx === 0);
 
-    const prevLegsWon = computeLegsWonInSet(prevSet as any);
-    const leftLegsWon = prevLegsWon[left.id] ?? 0;
-    const rightLegsWon = prevLegsWon[right.id] ?? 0;
-
-    const leftSetsWon = countSetsWon(prevMs, left.id);
-    const rightSetsWon = countSetsWon(prevMs, right.id);
-
     setBetweenModal({
       kind: isSetTransition ? 'set' : 'leg',
       winnerName,
-      leftName: left.name,
-      rightName: right.name,
-      leftLegsWon,
-      rightLegsWon,
-      leftSetsWon,
-      rightSetsWon,
     });
 
     setInput('0');
@@ -327,13 +301,47 @@ export default function GamePage() {
   const roundNumber = getRoundNumber(game);
   const legNumber = getCurrentLegNumber(game);
 
-  const leftPlayer = game.players[0] ?? null;
-  const rightPlayer = game.players[1] ?? null;
+  const players = game.players ?? [];
+  const playerCount = players.length;
 
-  const leftRemaining = leftPlayer ? scoreByPlayerId.get(leftPlayer.id)?.remaining : null;
-  const rightRemaining = rightPlayer ? scoreByPlayerId.get(rightPlayer.id)?.remaining : null;
+  if (playerCount > 8) {
+    return (
+      <div className="gp-wrap gp-center">
+        <Alert variant="danger">
+          Too many players in this game (max 8). Please start a new game.
+        </Alert>
+      </div>
+    );
+  }
 
   const isCurrent = (id?: string) => id && id === game.currentPlayerId;
+
+  let cols = 1;
+  let rows = 1;
+  let totalSlots = playerCount;
+
+  if (playerCount === 1) {
+    cols = 1;
+    rows = 1;
+    totalSlots = 1;
+  } else if (playerCount === 2) {
+    cols = 2;
+    rows = 1;
+    totalSlots = 2;
+  } else if (playerCount === 3) {
+    cols = 3;
+    rows = 1;
+    totalSlots = 3;
+  } else if (playerCount === 4) {
+    cols = 4;
+    rows = 1;
+    totalSlots = 4;
+  } else {
+    // 5-8 players -> 2 rows, 4 columns
+    cols = 4;
+    rows = 2;
+    totalSlots = 8;
+  }
 
   const canSubmitValue = (value: number) => {
     if (!Number.isFinite(value)) return false;
@@ -366,7 +374,6 @@ export default function GamePage() {
 
     if (!currentPlayer) return;
 
-    // keepInput=true only for typed values (not quick buttons)
     if (opts?.keepInput) {
       setInput(String(value));
     }
@@ -385,7 +392,7 @@ export default function GamePage() {
     );
   };
 
-  // ✅ Quick buttons submit immediately WITHOUT showing the value in the input
+  // Quick buttons submit immediately WITHOUT showing the value in the input
   const setQuick = (n: number) => {
     submitValue(n);
   };
@@ -394,23 +401,16 @@ export default function GamePage() {
     setInput((prev) => (prev.length <= 1 ? '0' : prev.slice(0, -1)));
   };
 
-  // ✅ Undo: only inside CURRENT LEG and prefill the UNDONE score in the input
+  // Undo inside CURRENT LEG and prefill the UNDONE score in the input
   const undoOneThrow = () => {
     if (!game) return;
     if (isFinished || posting || undoing || isBlockedByModal) return;
 
     const currentLegHist = getCurrentLegHistory(game);
-    if (!currentLegHist.length) {
-      // already at first turn of this leg
-      return;
-    }
+    if (!currentLegHist.length) return;
 
     const lastTurn = currentLegHist[currentLegHist.length - 1] as any;
-    const undoneScore =
-      lastTurn?.visitScore ??
-      lastTurn?.score ??
-      lastTurn?.value ??
-      0;
+    const undoneScore = lastTurn?.visitScore ?? lastTurn?.score ?? lastTurn?.value ?? 0;
 
     undoThrow(undefined, {
       onSuccess: () => {
@@ -427,7 +427,6 @@ export default function GamePage() {
     });
   };
 
-  // LEFT ARROW: backspace; if already 0 => undo
   const onLeftArrow = () => {
     if (isFinished || posting || undoing || isBlockedByModal) return;
     if (input !== '0') return backspaceOnly();
@@ -436,7 +435,6 @@ export default function GamePage() {
 
   const submit = () => {
     const value = Number(input);
-    // keepInput=true so typed value stays visible until request succeeds
     submitValue(value, { keepInput: true });
   };
 
@@ -472,26 +470,33 @@ export default function GamePage() {
         </div>
       </div>
 
-      <div className="gp-panels">
-        <div className={`gp-panel ${isCurrent(leftPlayer?.id) ? 'is-current' : ''}`}>
-          <div className="gp-panel__marker">
-            {isCurrent(leftPlayer?.id) ? <GiDart className="gp-turnDartIcon" /> : null}
-          </div>
-          <div className="gp-panel__score">{leftRemaining ?? '-'}</div>
-          <div className="gp-panel__name">{leftPlayer?.name?.toUpperCase() ?? '-'}</div>
-          <div className="gp-panel__meta">{(legsWonByPlayer[leftPlayer?.id ?? ''] ?? 0)} LEGS WON</div>
-          <div className="gp-panel__avg">{(avgVisitByPlayer[leftPlayer?.id ?? ''] ?? 0).toFixed(1)}</div>
-        </div>
+      <div
+        className={`gp-panels gp-panels--cols-${cols} gp-panels--rows-${rows}`}
+        style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+      >
+        {Array.from({ length: totalSlots }).map((_, idx) => {
+          const p = players[idx];
+          if (!p) {
+            return <div key={`empty-${idx}`} className="gp-panel gp-panel--empty" />;
+          }
 
-        <div className={`gp-panel ${isCurrent(rightPlayer?.id) ? 'is-current' : ''}`}>
-          <div className="gp-panel__marker">
-            {isCurrent(rightPlayer?.id) ? <GiDart className="gp-turnDartIcon" /> : null}
-          </div>
-          <div className="gp-panel__score">{rightRemaining ?? '-'}</div>
-          <div className="gp-panel__name">{rightPlayer?.name?.toUpperCase() ?? '-'}</div>
-          <div className="gp-panel__meta">{(legsWonByPlayer[rightPlayer?.id ?? ''] ?? 0)} LEGS WON</div>
-          <div className="gp-panel__avg">{(avgVisitByPlayer[rightPlayer?.id ?? ''] ?? 0).toFixed(1)}</div>
-        </div>
+          const remaining = scoreByPlayerId.get(p.id)?.remaining ?? '-';
+          const legsWon = (legsWonByPlayer[p.id] ?? 0) as number;
+          const avg = (avgVisitByPlayer[p.id] ?? 0) as number;
+          const active = isCurrent(p.id);
+
+          return (
+            <div key={p.id} className={`gp-panel ${active ? 'is-current' : ''}`}>
+              <div className="gp-panel__marker">
+                {active ? <GiDart className="gp-turnDartIcon" /> : null}
+              </div>
+              <div className="gp-panel__score">{remaining}</div>
+              <div className="gp-panel__name">{(p.name ?? '-').toUpperCase()}</div>
+              <div className="gp-panel__meta">{legsWon} LEGS WON</div>
+              <div className="gp-panel__avg">{avg.toFixed(1)}</div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="gp-inputRow">
