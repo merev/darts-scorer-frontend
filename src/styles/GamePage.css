@@ -15,6 +15,18 @@ body.route-game #root {
   width: 100%;
   background: var(--bg);
   color: var(--text);
+
+  /* Quick-score button theming (default = LIGHT theme behavior) */
+  --gp-quick-bg: rgba(0, 0, 0, 0.06);       /* greyer on light */
+  --gp-quick-bg-hover: rgba(0, 0, 0, 0.09);
+}
+
+/* DARK theme overrides (covers common theme implementations) */
+body[data-theme='dark'] .gp-wrap,
+body.dark .gp-wrap,
+body.theme-dark .gp-wrap {
+  --gp-quick-bg: rgba(255, 255, 255, 0.10);       /* lighter on dark */
+  --gp-quick-bg-hover: rgba(255, 255, 255, 0.14);
 }
 
 /* Used for loading/errors */
@@ -170,9 +182,18 @@ body.route-game #root {
   font-weight: 900;
 }
 
+/* ✅ QUICK SCORE FIX:
+   - text color matches 1-digit keys (var(--text))
+   - background differs by theme via --gp-quick-bg vars
+*/
 .gp-key--quick {
   font-size: 24px;
-  color: var(--text-muted);
+  color: var(--text);
+  background: var(--gp-quick-bg);
+}
+
+.gp-key--quick:hover:not(:disabled) {
+  background: var(--gp-quick-bg-hover);
 }
 
 .gp-key--action {
@@ -183,8 +204,6 @@ body.route-game #root {
 .gp-key:disabled {
   opacity: 0.45;
 }
-
-
 
 /* Finish modal (theme-aware) */
 .gp-finishModal {
@@ -248,4 +267,3 @@ body.route-game #root {
   font-weight: 800;
   letter-spacing: 0.04em;
 }
-
