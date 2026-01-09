@@ -21,7 +21,7 @@ body.route-game #root {
   --gp-quick-bg-hover: rgba(0, 0, 0, 0.09);
 
   /* Turn marker color */
-  --gp-turn: var(--primary, var(--accent, #3aa0ff));
+  --gp-turn: var(--primary, var(--accent, #ff3b30));
 }
 
 /* DARK theme overrides (covers common theme implementations) */
@@ -98,7 +98,7 @@ body.theme-dark .gp-wrap {
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
 
-  /* ✅ center everything */
+  /* ✅ center everything in the player box */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -118,8 +118,14 @@ body.theme-dark .gp-wrap {
   position: absolute;
   left: 10px;
   top: 14px;
-  font-size: 16px;
   color: var(--gp-turn);
+}
+
+.gp-turnDart {
+  width: 20px;
+  height: 20px;
+  display: block;
+  fill: currentColor;
 }
 
 .gp-panel__score {
@@ -138,7 +144,6 @@ body.theme-dark .gp-wrap {
   text-transform: uppercase;
   font-size: 0.9rem;
   color: var(--text-muted);
-  margin-left: 0;
 }
 
 .gp-panel__meta {
@@ -148,7 +153,6 @@ body.theme-dark .gp-wrap {
   text-transform: uppercase;
   font-size: 0.72rem;
   color: var(--text-muted);
-  margin-left: 0;
 }
 
 .gp-panel__avg {
@@ -191,10 +195,15 @@ body.theme-dark .gp-wrap {
   font-weight: 900;
 }
 
-/* ✅ QUICK SCORE FIX:
-   - text color matches 1-digit keys
-   - background differs by theme via vars
-*/
+/* spacer cell to keep 0 centered on last row */
+.gp-key--spacer {
+  background: transparent;
+  border: 1px solid var(--border);
+  opacity: 0.0;
+  pointer-events: none;
+}
+
+/* ✅ QUICK SCORE FIX */
 .gp-key--quick {
   font-size: 24px;
   color: var(--text);
@@ -270,9 +279,17 @@ body.theme-dark .gp-wrap {
   background: rgba(255, 255, 255, 0.10);
 }
 
-.gp-between__line {
-  margin-top: 10px;
-  color: var(--text-muted);
-  font-weight: 800;
-  letter-spacing: 0.04em;
+/* optional floating undo button */
+.gp-fabUndo {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev-1);
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 900;
 }
