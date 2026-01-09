@@ -281,3 +281,77 @@ body.theme-dark .gp-wrap {
 .gp-finishBtn--primary {
   background: rgba(255, 255, 255, 0.10);
 }
+
+
+/* ---------------------------------------
+   EXTRA COMPACT SCOREBOARD (small phones)
+   Works for 4+ players and 5-8 players
+---------------------------------------- */
+
+/* Make base panels a bit shorter on small screens */
+@media (max-width: 420px) {
+  .gp-panel {
+    min-height: 120px;
+    padding: 10px 8px 8px;
+  }
+}
+
+/* 3 players: compact */
+.gp-panels--cols-3 .gp-panel__score { font-size: 34px; }
+.gp-panels--cols-3 .gp-panel__name { font-size: 0.78rem; }
+.gp-panels--cols-3 .gp-panel__meta { font-size: 0.62rem; }
+.gp-panels--cols-3 .gp-panel__avg  { font-size: 13px; margin-top: 10px; }
+
+/* 4 players: MUCH more compact */
+.gp-panels--cols-4 .gp-panel {
+  min-height: 105px;
+  padding: 9px 8px 7px;
+}
+
+.gp-panels--cols-4 .gp-panel__score { font-size: 28px; }
+.gp-panels--cols-4 .gp-panel__name  { font-size: 0.70rem; margin-top: 6px; }
+.gp-panels--cols-4 .gp-panel__meta  { font-size: 0.54rem; }
+.gp-panels--cols-4 .gp-panel__avg   { font-size: 12px; margin-top: 8px; }
+
+.gp-panels--cols-4 .gp-panel__marker {
+  left: 8px;
+  top: 10px;
+}
+
+.gp-panels--cols-4 .gp-turnDartIcon {
+  width: 18px;
+  height: 18px;
+}
+
+/* 2 rows (5-8 players): ultra compact */
+.gp-panels--rows-2 .gp-panel {
+  min-height: 86px;
+  padding: 7px 6px 6px;
+}
+
+.gp-panels--rows-2 .gp-panel__score { font-size: 24px; }
+.gp-panels--rows-2 .gp-panel__name  { font-size: 0.62rem; margin-top: 4px; letter-spacing: 0.08em; }
+.gp-panels--rows-2 .gp-panel__meta  { font-size: 0.50rem; letter-spacing: 0.07em; }
+.gp-panels--rows-2 .gp-panel__avg   { font-size: 11px; margin-top: 6px; }
+
+.gp-panels--rows-2 .gp-panel__marker {
+  left: 7px;
+  top: 9px;
+}
+
+.gp-panels--rows-2 .gp-turnDartIcon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Even smaller screens (older iPhones / very small height) */
+@media (max-width: 390px) {
+  .gp-panels--cols-4 .gp-panel__score { font-size: 26px; }
+  .gp-panels--rows-2 .gp-panel__score { font-size: 22px; }
+}
+
+/* If height is small, compress scoreboard further */
+@media (max-height: 700px) {
+  .gp-panels--rows-2 .gp-panel { min-height: 78px; }
+  .gp-panels--rows-2 .gp-panel__score { font-size: 21px; }
+}
