@@ -174,23 +174,53 @@ export default function GamePage() {
   // avg visit score per player for CURRENT LEG only
   const avgVisitByPlayer = useMemo(() => {
     if (!game) return {};
-    const currentLegHist = getCurrentLegHistory(game);
+
+    // Current-leg-only history
+    const hist = getCurrentLegHistory(game);
+
+    const start = game.config.startingScore ?? 501;
+    const doubleOut = !!game.config.doubleOut;
+
+    // Remaining per player (simulate backend computeScores bust rules)
+    const remaining: Record<string, number> = {};
+    for (const p of game.players) remaining[p.id] = start;
+
     const totals: Record<string, { sum: number; visits: number }> = {};
 
-    for (const t of currentLegHist) {
+    for (const t of hist) {
       const pid = String((t as any).playerId ?? '');
-      const vs = Number((t as any).visitScore ?? 0);
+      const visitScore = Number((t as any).visitScore ?? 0);
       if (!pid) continue;
 
+      const cur = remaining[pid] ?? start;
+      const cand = cur - visitScore;
+
+      // ✅ Bust rules MUST match backend:
+      // - cand < 0 => bust
+      // - doubleOut and cand == 1 => bust
+      const isBust = cand < 0 || (doubleOut && cand === 1);
+
+      if (isBust) {
+        // bust: do NOT count for avg, do NOT change remaining
+        continue;
+      }
+
+      // accepted visit
+      remaining[pid] = cand;
+
       totals[pid] = totals[pid] ?? { sum: 0, visits: 0 };
-      totals[pid].sum += vs;
+      totals[pid].sum += visitScore;
       totals[pid].visits += 1;
+
+      // If someone checked out, remaining becomes 0; next throw would start next leg on backend,
+      // but since we use current-leg-only history, this is fine.
     }
 
     const out: Record<string, number> = {};
     for (const [pid, v] of Object.entries(totals)) {
       out[pid] = v.visits > 0 ? v.sum / v.visits : 0;
     }
+
     return out;
   }, [game]);
 

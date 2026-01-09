@@ -355,3 +355,29 @@ body.theme-dark .gp-wrap {
   .gp-panels--rows-2 .gp-panel { min-height: 78px; }
   .gp-panels--rows-2 .gp-panel__score { font-size: 21px; }
 }
+
+
+/* --- Smaller input + keypad fonts --- */
+.gp-input {
+  font-size: 30px; /* was ~34 */
+}
+
+.gp-key {
+  font-size: 24px; /* was ~26 */
+}
+
+.gp-key--quick {
+  font-size: 22px; /* was ~24 */
+}
+
+.gp-key--action {
+  font-size: 30px; /* was ~34 */
+}
+
+/* Extra small phones */
+@media (max-width: 390px) {
+  .gp-input { font-size: 28px; }
+  .gp-key { font-size: 22px; }
+  .gp-key--quick { font-size: 21px; }
+  .gp-key--action { font-size: 28px; }
+}
