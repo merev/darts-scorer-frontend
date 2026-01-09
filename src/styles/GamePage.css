@@ -381,3 +381,49 @@ body.theme-dark .gp-wrap {
   .gp-key--quick { font-size: 21px; }
   .gp-key--action { font-size: 28px; }
 }
+
+
+.gp-finishModal__standings {
+  margin-top: 14px;
+}
+
+.gp-finishModal__standingsTitle {
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.gp-finishModal__standingsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gp-finishModal__standingRow {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elev-1);
+}
+
+.gp-finishModal__standingPos {
+  font-weight: 900;
+  color: var(--text-muted);
+}
+
+.gp-finishModal__standingName {
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.gp-finishModal__standingStats {
+  display: flex;
+  gap: 10px;
+  font-weight: 900;
+  color: var(--text-muted);
+}

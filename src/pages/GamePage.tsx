@@ -9,7 +9,9 @@ import type { GameState, SetScore } from '../types/darts';
 
 import '../styles/GamePage.css';
 
-/** helpers */
+/** -------------------------
+ * Helpers
+ * ------------------------*/
 function computeLegsWonInSet(set: SetScore): Record<string, number> {
   const wins: Record<string, number> = {};
   for (const leg of set.legs) {
@@ -17,6 +19,50 @@ function computeLegsWonInSet(set: SetScore): Record<string, number> {
     wins[leg.winnerId] = (wins[leg.winnerId] ?? 0) + 1;
   }
   return wins;
+}
+
+function computePossibleVisitScores(): Set<number> {
+  const dartValues = new Set<number>();
+  dartValues.add(0);
+
+  for (let n = 1; n <= 20; n++) {
+    dartValues.add(n);
+    dartValues.add(2 * n);
+    dartValues.add(3 * n);
+  }
+  dartValues.add(25);
+  dartValues.add(50);
+
+  const values = Array.from(dartValues);
+  const possible = new Set<number>();
+  for (const a of values) for (const b of values) for (const c of values) possible.add(a + b + c);
+  return possible;
+}
+
+function getWinnerId(game: GameState): string | null {
+  const anyGame: any = game;
+  return anyGame.winnerId ?? anyGame.winner?.id ?? anyGame.matchScore?.winnerId ?? null;
+}
+
+function countSetsWon(matchScore: any, playerId: string): number {
+  const sets = matchScore?.sets ?? [];
+  let won = 0;
+  for (const s of sets) {
+    if (s?.winnerId === playerId) won += 1;
+  }
+  return won;
+}
+
+function countLegsWonTotal(matchScore: any, playerId: string): number {
+  const sets = matchScore?.sets ?? [];
+  let won = 0;
+  for (const s of sets) {
+    const legs = s?.legs ?? [];
+    for (const l of legs) {
+      if (l?.winnerId === playerId) won += 1;
+    }
+  }
+  return won;
 }
 
 function getRoundNumber(game: GameState) {
@@ -83,37 +129,42 @@ function getCurrentLegHistory(game: GameState) {
   return history.filter((t) => new Date(t.createdAt).getTime() > t0);
 }
 
-function computePossibleVisitScores(): Set<number> {
-  const dartValues = new Set<number>();
-  dartValues.add(0);
+function buildFinalStandings(game: GameState) {
+  const ms: any = (game as any).matchScore;
+  const hasMatchScore = !!ms?.sets?.length;
 
-  for (let n = 1; n <= 20; n++) {
-    dartValues.add(n);
-    dartValues.add(2 * n);
-    dartValues.add(3 * n);
-  }
-  dartValues.add(25);
-  dartValues.add(50);
+  const standings = (game.players ?? []).map((p) => {
+    const setsWon = hasMatchScore ? countSetsWon(ms, p.id) : 0;
+    const legsWon = hasMatchScore ? countLegsWonTotal(ms, p.id) : 0;
+    const remaining = (game.scores ?? []).find((s: any) => s.playerId === p.id)?.remaining;
 
-  const values = Array.from(dartValues);
-  const possible = new Set<number>();
+    return {
+      id: p.id,
+      name: p.name ?? '-',
+      setsWon,
+      legsWon,
+      remaining: typeof remaining === 'number' ? remaining : null,
+    };
+  });
 
-  for (const a of values) for (const b of values) for (const c of values) possible.add(a + b + c);
-  return possible;
+  standings.sort((a, b) => {
+    if (b.setsWon !== a.setsWon) return b.setsWon - a.setsWon;
+    if (b.legsWon !== a.legsWon) return b.legsWon - a.legsWon;
+    return String(a.name).localeCompare(String(b.name));
+  });
+
+  return standings;
 }
 
-function getWinnerId(game: GameState): string | null {
-  const anyGame: any = game;
-  return anyGame.winnerId ?? anyGame.winner?.id ?? anyGame.matchScore?.winnerId ?? null;
-}
+function buildResultText(game: GameState) {
+  const ms: any = (game as any).matchScore;
+  if (!ms?.sets?.length) return null;
 
-function formatResultLine(game: GameState): string {
-  const anyGame: any = game;
-  if (typeof anyGame.result === 'string') return anyGame.result;
+  const standings = buildFinalStandings(game);
+  const setsLine = standings.map((p) => `${p.name}: ${p.setsWon}`).join(' · ');
+  const legsLine = standings.map((p) => `${p.name}: ${p.legsWon}`).join(' · ');
 
-  const p1 = game.players?.[0]?.name ?? 'Player 1';
-  const p2 = game.players?.[1]?.name ?? 'Player 2';
-  return `${p1} vs ${p2}`;
+  return { setsLine, legsLine };
 }
 
 type BetweenLegsModalInfo = {
@@ -121,14 +172,7 @@ type BetweenLegsModalInfo = {
   winnerName: string;
 };
 
-function countSetsWon(matchScore: any, playerId: string): number {
-  const sets = matchScore?.sets ?? [];
-  let won = 0;
-  for (const s of sets) {
-    if (s?.winnerId === playerId) won += 1;
-  }
-  return won;
-}
+const MAX_PLAYERS = 8;
 
 export default function GamePage() {
   const params = useParams();
@@ -148,9 +192,11 @@ export default function GamePage() {
 
   const [input, setInput] = useState<string>('0');
 
+  // Finish modal
   const [showFinishModal, setShowFinishModal] = useState(false);
   const prevStatusRef = useRef<string | null>(null);
 
+  // Between legs/sets
   const [betweenModal, setBetweenModal] = useState<BetweenLegsModalInfo | null>(null);
   const prevMatchScoreRef = useRef<any>(null);
 
@@ -171,17 +217,15 @@ export default function GamePage() {
     return computeLegsWonInSet(set);
   }, [game]);
 
-  // avg visit score per player for CURRENT LEG only
+  // ✅ Average per player for current leg ONLY, ignoring busts (missed visits)
   const avgVisitByPlayer = useMemo(() => {
     if (!game) return {};
 
-    // Current-leg-only history
     const hist = getCurrentLegHistory(game);
 
-    const start = game.config.startingScore ?? 501;
-    const doubleOut = !!game.config.doubleOut;
+    const start = (game as any).config?.startingScore ?? 501;
+    const doubleOut = !!(game as any).config?.doubleOut;
 
-    // Remaining per player (simulate backend computeScores bust rules)
     const remaining: Record<string, number> = {};
     for (const p of game.players) remaining[p.id] = start;
 
@@ -195,32 +239,24 @@ export default function GamePage() {
       const cur = remaining[pid] ?? start;
       const cand = cur - visitScore;
 
-      // ✅ Bust rules MUST match backend:
-      // - cand < 0 => bust
-      // - doubleOut and cand == 1 => bust
       const isBust = cand < 0 || (doubleOut && cand === 1);
 
       if (isBust) {
-        // bust: do NOT count for avg, do NOT change remaining
+        // miss: do not count & do not change remaining
         continue;
       }
 
-      // accepted visit
       remaining[pid] = cand;
 
       totals[pid] = totals[pid] ?? { sum: 0, visits: 0 };
       totals[pid].sum += visitScore;
       totals[pid].visits += 1;
-
-      // If someone checked out, remaining becomes 0; next throw would start next leg on backend,
-      // but since we use current-leg-only history, this is fine.
     }
 
     const out: Record<string, number> = {};
     for (const [pid, v] of Object.entries(totals)) {
       out[pid] = v.visits > 0 ? v.sum / v.visits : 0;
     }
-
     return out;
   }, [game]);
 
@@ -230,19 +266,19 @@ export default function GamePage() {
     if (isError) showToast('Could not load game. Please try again.', 'danger');
   }, [isError, showToast]);
 
+  // Detect finished => open finish modal once
   useEffect(() => {
     if (!game) return;
-
     const prev = prevStatusRef.current;
     const curr = game.status;
 
     if (prev && prev !== 'finished' && curr === 'finished') {
       setShowFinishModal(true);
     }
-
     prevStatusRef.current = curr;
   }, [game]);
 
+  // Detect leg/set transitions for between-modal
   useEffect(() => {
     if (!game) return;
 
@@ -322,30 +358,27 @@ export default function GamePage() {
     );
   }
 
-  const isFinished = game.status === 'finished';
-  const isBlockedByModal = !!betweenModal || showFinishModal;
-
-  const currentPlayer =
-    game.players.find((p) => p.id === game.currentPlayerId) ?? game.players[0];
-
-  const roundNumber = getRoundNumber(game);
-  const legNumber = getCurrentLegNumber(game);
-
   const players = game.players ?? [];
   const playerCount = players.length;
 
-  if (playerCount > 8) {
+  if (playerCount > MAX_PLAYERS) {
     return (
       <div className="gp-wrap gp-center">
-        <Alert variant="danger">
-          Too many players in this game (max 8). Please start a new game.
-        </Alert>
+        <Alert variant="danger">Too many players in this game (max {MAX_PLAYERS}). Please start a new game.</Alert>
       </div>
     );
   }
 
+  const isFinished = game.status === 'finished';
+  const isBlockedByModal = !!betweenModal || showFinishModal;
+
+  const currentPlayer = players.find((p) => p.id === game.currentPlayerId) ?? players[0];
   const isCurrent = (id?: string) => id && id === game.currentPlayerId;
 
+  const roundNumber = getRoundNumber(game);
+  const legNumber = getCurrentLegNumber(game);
+
+  // Scoreboard grid sizing
   let cols = 1;
   let rows = 1;
   let totalSlots = playerCount;
@@ -367,10 +400,9 @@ export default function GamePage() {
     rows = 1;
     totalSlots = 4;
   } else {
-    // 5-8 players -> 2 rows, 4 columns
     cols = 4;
     rows = 2;
-    totalSlots = 8;
+    totalSlots = 8; // fixed grid, placeholders for 5-7
   }
 
   const canSubmitValue = (value: number) => {
@@ -404,9 +436,7 @@ export default function GamePage() {
 
     if (!currentPlayer) return;
 
-    if (opts?.keepInput) {
-      setInput(String(value));
-    }
+    if (opts?.keepInput) setInput(String(value));
 
     postThrow(
       { playerId: currentPlayer.id, visitScore: value, dartsThrown: 3 },
@@ -422,7 +452,7 @@ export default function GamePage() {
     );
   };
 
-  // Quick buttons submit immediately WITHOUT showing the value in the input
+  // ✅ Quick buttons submit directly, no input “flash”
   const setQuick = (n: number) => {
     submitValue(n);
   };
@@ -431,9 +461,8 @@ export default function GamePage() {
     setInput((prev) => (prev.length <= 1 ? '0' : prev.slice(0, -1)));
   };
 
-  // Undo inside CURRENT LEG and prefill the UNDONE score in the input
+  // ✅ Undo: current leg only; after undo, prefill the undone visit score in input
   const undoOneThrow = () => {
-    if (!game) return;
     if (isFinished || posting || undoing || isBlockedByModal) return;
 
     const currentLegHist = getCurrentLegHistory(game);
@@ -444,11 +473,8 @@ export default function GamePage() {
 
     undoThrow(undefined, {
       onSuccess: () => {
-        if (typeof undoneScore === 'number' && Number.isFinite(undoneScore)) {
-          setInput(String(undoneScore));
-        } else {
-          setInput('0');
-        }
+        if (typeof undoneScore === 'number' && Number.isFinite(undoneScore)) setInput(String(undoneScore));
+        else setInput('0');
       },
       onError: (err: any) => {
         console.error('Failed to undo', err);
@@ -457,19 +483,17 @@ export default function GamePage() {
     });
   };
 
+  // Left arrow: backspace if typing; otherwise undo
   const onLeftArrow = () => {
     if (isFinished || posting || undoing || isBlockedByModal) return;
     if (input !== '0') return backspaceOnly();
     undoOneThrow();
   };
 
-  const submit = () => {
-    const value = Number(input);
-    submitValue(value, { keepInput: true });
-  };
+  const submit = () => submitValue(Number(input), { keepInput: true });
 
   const winnerId = getWinnerId(game);
-  const winnerName = (winnerId && game.players.find((p) => p.id === winnerId)?.name) || null;
+  const winnerName = (winnerId && players.find((p) => p.id === winnerId)?.name) || null;
 
   return (
     <div className="gp-wrap">
@@ -489,26 +513,20 @@ export default function GamePage() {
             ⚙️
           </button>
 
-          <button
-            type="button"
-            className="gp-iconBtn"
-            aria-label="Exit game"
-            onClick={() => navigate('/')}
-          >
+          <button type="button" className="gp-iconBtn" aria-label="Exit game" onClick={() => navigate('/')}>
             ✕
           </button>
         </div>
       </div>
 
+      {/* SCOREBOARD */}
       <div
         className={`gp-panels gp-panels--cols-${cols} gp-panels--rows-${rows}`}
         style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
       >
         {Array.from({ length: totalSlots }).map((_, idx) => {
           const p = players[idx];
-          if (!p) {
-            return <div key={`empty-${idx}`} className="gp-panel gp-panel--empty" />;
-          }
+          if (!p) return <div key={`empty-${idx}`} className="gp-panel gp-panel--empty" />;
 
           const remaining = scoreByPlayerId.get(p.id)?.remaining ?? '-';
           const legsWon = (legsWonByPlayer[p.id] ?? 0) as number;
@@ -517,11 +535,9 @@ export default function GamePage() {
 
           return (
             <div key={p.id} className={`gp-panel ${active ? 'is-current' : ''}`}>
-              <div className="gp-panel__marker">
-                {active ? <GiDart className="gp-turnDartIcon" /> : null}
-              </div>
+              <div className="gp-panel__marker">{active ? <GiDart className="gp-turnDartIcon" /> : null}</div>
               <div className="gp-panel__score">{remaining}</div>
-              <div className="gp-panel__name">{(p.name ?? '-').toUpperCase()}</div>
+              <div className="gp-panel__name">{String(p.name ?? '-').toUpperCase()}</div>
               <div className="gp-panel__meta">{legsWon} LEGS WON</div>
               <div className="gp-panel__avg">{avg.toFixed(1)}</div>
             </div>
@@ -529,10 +545,12 @@ export default function GamePage() {
         })}
       </div>
 
+      {/* INPUT */}
       <div className="gp-inputRow">
         <div className="gp-input">{input}</div>
       </div>
 
+      {/* KEYPAD */}
       <div className="gp-pad">
         {quick.map((n) => (
           <button
@@ -588,13 +606,8 @@ export default function GamePage() {
         </button>
       </div>
 
-      {/* BETWEEN LEGS/SETS MODAL */}
-      <Modal
-        show={!!betweenModal}
-        centered
-        onHide={() => setBetweenModal(null)}
-        contentClassName="gp-finishModal"
-      >
+      {/* BETWEEN LEGS / SETS MODAL */}
+      <Modal show={!!betweenModal} centered onHide={() => setBetweenModal(null)} contentClassName="gp-finishModal">
         <Modal.Header className="gp-finishModal__header">
           <Modal.Title className="gp-finishModal__title">
             {betweenModal?.kind === 'set' ? 'SET FINISHED' : 'LEG FINISHED'}
@@ -608,23 +621,14 @@ export default function GamePage() {
         </Modal.Body>
 
         <Modal.Footer className="gp-finishModal__footer">
-          <button
-            type="button"
-            className="gp-finishBtn gp-finishBtn--primary"
-            onClick={() => setBetweenModal(null)}
-          >
+          <button type="button" className="gp-finishBtn gp-finishBtn--primary" onClick={() => setBetweenModal(null)}>
             NEXT
           </button>
         </Modal.Footer>
       </Modal>
 
       {/* FINISH MODAL */}
-      <Modal
-        show={showFinishModal}
-        centered
-        onHide={() => setShowFinishModal(false)}
-        contentClassName="gp-finishModal"
-      >
+      <Modal show={showFinishModal} centered onHide={() => setShowFinishModal(false)} contentClassName="gp-finishModal">
         <Modal.Header className="gp-finishModal__header">
           <Modal.Title className="gp-finishModal__title">MATCH FINISHED</Modal.Title>
         </Modal.Header>
@@ -633,18 +637,52 @@ export default function GamePage() {
           <div className="gp-finishModal__winner">
             Winner: <span className="gp-finishModal__winnerName">{winnerName ?? '-'}</span>
           </div>
-          <div className="gp-finishModal__result">{formatResultLine(game)}</div>
+
+          {(() => {
+            const standings = buildFinalStandings(game);
+            const result = buildResultText(game);
+
+            return (
+              <>
+                {result ? (
+                  <div className="gp-finishModal__result">
+                    <div>
+                      <strong>Sets:</strong> {result.setsLine}
+                    </div>
+                    <div style={{ marginTop: 6 }}>
+                      <strong>Legs:</strong> {result.legsLine}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="gp-finishModal__result">Result unavailable (missing matchScore).</div>
+                )}
+
+                <div className="gp-finishModal__standings">
+                  <div className="gp-finishModal__standingsTitle">Standings</div>
+
+                  <div className="gp-finishModal__standingsList">
+                    {standings.map((p, idx) => (
+                      <div key={p.id} className="gp-finishModal__standingRow">
+                        <div className="gp-finishModal__standingPos">{idx + 1}</div>
+                        <div className="gp-finishModal__standingName">{String(p.name).toUpperCase()}</div>
+                        <div className="gp-finishModal__standingStats">
+                          <span>{p.setsWon}S</span>
+                          <span>{p.legsWon}L</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </Modal.Body>
 
         <Modal.Footer className="gp-finishModal__footer">
           <button type="button" className="gp-finishBtn" onClick={() => navigate('/')}>
             END
           </button>
-          <button
-            type="button"
-            className="gp-finishBtn gp-finishBtn--primary"
-            onClick={() => navigate('/new-game')}
-          >
+          <button type="button" className="gp-finishBtn gp-finishBtn--primary" onClick={() => navigate('/new-game')}>
             NEW GAME
           </button>
         </Modal.Footer>
