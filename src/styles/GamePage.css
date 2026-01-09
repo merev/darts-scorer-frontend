@@ -17,15 +17,18 @@ body.route-game #root {
   color: var(--text);
 
   /* Quick-score button theming (default = LIGHT theme behavior) */
-  --gp-quick-bg: rgba(0, 0, 0, 0.06);       /* greyer on light */
+  --gp-quick-bg: rgba(0, 0, 0, 0.06); /* greyer on light */
   --gp-quick-bg-hover: rgba(0, 0, 0, 0.09);
+
+  /* Turn marker color */
+  --gp-turn: var(--primary, var(--accent, #3aa0ff));
 }
 
 /* DARK theme overrides (covers common theme implementations) */
 body[data-theme='dark'] .gp-wrap,
 body.dark .gp-wrap,
 body.theme-dark .gp-wrap {
-  --gp-quick-bg: rgba(255, 255, 255, 0.10);       /* lighter on dark */
+  --gp-quick-bg: rgba(255, 255, 255, 0.10); /* lighter on dark */
   --gp-quick-bg-hover: rgba(255, 255, 255, 0.14);
 }
 
@@ -94,6 +97,13 @@ body.theme-dark .gp-wrap {
   background: var(--bg-elev-2);
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
+
+  /* ✅ center everything */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .gp-panel:last-child {
@@ -108,43 +118,42 @@ body.theme-dark .gp-wrap {
   position: absolute;
   left: 10px;
   top: 14px;
-  font-size: 14px;
-  color: var(--text-muted);
+  font-size: 16px;
+  color: var(--gp-turn);
 }
 
 .gp-panel__score {
-  font-size: 48px; /* reduced a lot */
+  font-size: 48px;
   line-height: 1;
   font-weight: 900;
   letter-spacing: 0.02em;
   color: var(--text);
-  margin-left: 14px;
+  margin: 0;
 }
 
 .gp-panel__name {
   margin-top: 8px;
-  margin-left: 14px;
   font-weight: 900;
   letter-spacing: 0.10em;
   text-transform: uppercase;
   font-size: 0.9rem;
   color: var(--text-muted);
+  margin-left: 0;
 }
 
 .gp-panel__meta {
-  margin-left: 14px;
   margin-top: 2px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-size: 0.72rem; /* smaller */
+  font-size: 0.72rem;
   color: var(--text-muted);
+  margin-left: 0;
 }
 
 .gp-panel__avg {
   margin-top: 14px;
-  text-align: center;
-  font-size: 18px; /* smaller */
+  font-size: 18px;
   font-weight: 800;
   color: var(--text-muted);
 }
@@ -161,7 +170,7 @@ body.theme-dark .gp-wrap {
 }
 
 .gp-input {
-  font-size: 34px; /* reduced */
+  font-size: 34px;
   font-weight: 900;
   letter-spacing: 0.08em;
   color: var(--text-muted);
@@ -174,17 +183,17 @@ body.theme-dark .gp-wrap {
 }
 
 .gp-key {
-  height: 84px; /* reduced */
+  height: 84px;
   border: 1px solid var(--border);
   background: var(--bg-elev-2);
   color: var(--text);
-  font-size: 26px; /* reduced */
+  font-size: 26px;
   font-weight: 900;
 }
 
 /* ✅ QUICK SCORE FIX:
-   - text color matches 1-digit keys (var(--text))
-   - background differs by theme via --gp-quick-bg vars
+   - text color matches 1-digit keys
+   - background differs by theme via vars
 */
 .gp-key--quick {
   font-size: 24px;
@@ -197,7 +206,7 @@ body.theme-dark .gp-wrap {
 }
 
 .gp-key--action {
-  font-size: 34px; /* reduced */
+  font-size: 34px;
   color: var(--text-muted);
 }
 

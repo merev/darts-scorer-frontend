@@ -22,6 +22,33 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
+function getCurrentLegThrows(game: GameState) {
+  const history = (game as any).history ?? [];
+  const ms: any = (game as any).matchScore;
+
+  // No sets/legs system -> all history belongs to the (only) leg
+  if (!ms?.sets?.length) return history;
+
+  const set = ms.sets[ms.currentSetIndex];
+  const legIdx = ms.currentLegIndex;
+
+  // Find the previous finished leg end time (if any)
+  let lastFinishedAt: string | null = null;
+
+  if (legIdx > 0) {
+    const prevLeg = set.legs[legIdx - 1];
+    lastFinishedAt = prevLeg?.finishedAt ?? null;
+  } else if (ms.currentSetIndex > 0) {
+    const prevSet = ms.sets[ms.currentSetIndex - 1];
+    const prevLeg = prevSet?.legs?.[prevSet.legs.length - 1];
+    lastFinishedAt = prevLeg?.finishedAt ?? null;
+  }
+
+  return lastFinishedAt
+    ? history.filter((t: any) => new Date(t.createdAt).getTime() > new Date(lastFinishedAt!).getTime())
+    : history;
+}
+
 function getRoundNumber(game: GameState) {
   const playersCount = Math.max(1, game.players.length);
   const history = (game as any).history ?? [];
@@ -54,11 +81,9 @@ function getRoundNumber(game: GameState) {
   return Math.floor(since / playersCount) + 1;
 }
 
-
-function getCurrentLegNumber(game: GameState) {
+function getLegNumber(game: GameState) {
   const ms: any = (game as any).matchScore;
-  if (!ms || !ms.sets || ms.currentSetIndex == null || ms.currentLegIndex == null) return 1;
-
+  if (!ms?.sets?.length) return 1;
   const set = ms.sets[ms.currentSetIndex];
   const leg = set?.legs?.[ms.currentLegIndex];
   return leg?.legNumber ?? ms.currentLegIndex + 1;
@@ -90,39 +115,34 @@ function getWinnerId(game: GameState): string | null {
 
 function formatResultLine(game: GameState): string {
   const anyGame: any = game;
-  if (typeof anyGame.result === 'string') return anyGame.result;
+  const ms: any = anyGame.matchScore;
 
-  const p1 = game.players?.[0]?.name ?? 'Player 1';
-  const p2 = game.players?.[1]?.name ?? 'Player 2';
-  return `${p1} vs ${p2}`;
-}
+  // If matchScore exists, try to show sets/legs summary
+  if (ms?.sets?.length) {
+    const sets = ms.sets ?? [];
+    const setWins: Record<string, number> = {};
 
-type BetweenLegsModalInfo = {
-  kind: 'leg' | 'set';
-  winnerName: string;
-  leftName: string;
-  rightName: string;
-  leftLegsWon: number;
-  rightLegsWon: number;
-  leftSetsWon: number;
-  rightSetsWon: number;
-};
+    for (const s of sets) {
+      if (!s?.winnerId) continue;
+      setWins[s.winnerId] = (setWins[s.winnerId] ?? 0) + 1;
+    }
 
-function countSetsWon(matchScore: any, playerId: string): number {
-  const sets = matchScore?.sets ?? [];
-  let won = 0;
-  for (const s of sets) {
-    if (s?.winnerId === playerId) won += 1;
+    const p0 = game.players?.[0];
+    const p1 = game.players?.[1];
+
+    const a = p0?.id ? (setWins[p0.id] ?? 0) : 0;
+    const b = p1?.id ? (setWins[p1.id] ?? 0) : 0;
+
+    if (p0 && p1) return `${p0.name}: ${a} sets • ${p1.name}: ${b} sets`;
   }
-  return won;
+
+  return '';
 }
 
 export default function GamePage() {
-  const params = useParams();
+  const { gameId } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
-
-  const gameId = (params.id || (params as any).gameId || '') as string;
 
   // Full-bleed mode only for this route
   useEffect(() => {
@@ -138,20 +158,41 @@ export default function GamePage() {
 
   // Finish modal
   const [showFinishModal, setShowFinishModal] = useState(false);
-  const prevStatusRef = useRef<string | null>(null);
+  const finishShownRef = useRef(false);
 
-  // Between-legs/sets modal
-  const [betweenModal, setBetweenModal] = useState<BetweenLegsModalInfo | null>(null);
-  const prevMatchScoreRef = useRef<any>(null);
+  // Between-legs modal
+  const [showBetweenModal, setShowBetweenModal] = useState(false);
+  const betweenShownRef = useRef(false);
+  const prevLegKeyRef = useRef<string>('');
 
-  const possibleScores = useMemo(() => computePossibleVisitScores(), []);
+  const isFinished = game?.status === 'finished';
+  const winnerId = game ? getWinnerId(game) : null;
+  const winnerName = useMemo(() => {
+    if (!game || !winnerId) return '';
+    const p = game.players.find((x) => x.id === winnerId);
+    return p?.name ?? '';
+  }, [game, winnerId]);
 
-  const scoreByPlayerId = useMemo(() => {
-    const m = new Map<string, any>();
-    const scores = game?.scores ?? [];
-    for (const s of scores) m.set(s.playerId, s);
-    return m;
-  }, [game?.scores]);
+  const roundNumber = useMemo(() => (game ? getRoundNumber(game) : 1), [game]);
+  const legNumber = useMemo(() => (game ? getLegNumber(game) : 1), [game]);
+
+  // Determine current player & ordering (left/right)
+  const leftPlayer = game?.players?.[0] ?? null;
+  const rightPlayer = game?.players?.[1] ?? null;
+
+  const leftRemaining = useMemo(() => {
+    if (!game || !leftPlayer) return null;
+    const s = game.scores.find((x) => x.playerId === leftPlayer.id);
+    return s?.remaining ?? null;
+  }, [game, leftPlayer]);
+
+  const rightRemaining = useMemo(() => {
+    if (!game || !rightPlayer) return null;
+    const s = game.scores.find((x) => x.playerId === rightPlayer.id);
+    return s?.remaining ?? null;
+  }, [game, rightPlayer]);
+
+  const isCurrent = (playerId?: string | null) => !!playerId && game?.currentPlayerId === playerId;
 
   const legsWonByPlayer = useMemo(() => {
     const ms: any = (game as any)?.matchScore;
@@ -161,254 +202,165 @@ export default function GamePage() {
     return computeLegsWonInSet(set);
   }, [game]);
 
-  const quick = useMemo(() => [26, 41, 45, 60, 81, 85], []);
+  // Average visit score per round (visit) for the CURRENT LEG only
+  const avgVisitByPlayer = useMemo(() => {
+    if (!game) return {};
+    const currentLegHistory = getCurrentLegThrows(game);
+    const totals: Record<string, { sum: number; visits: number }> = {};
 
-  useEffect(() => {
-    if (isError) showToast('Could not load game. Please try again.', 'danger');
-  }, [isError, showToast]);
-
-  // Detect game finished => open finish modal once
-  useEffect(() => {
-    if (!game) return;
-
-    const prev = prevStatusRef.current;
-    const curr = game.status;
-
-    if (prev && prev !== 'finished' && curr === 'finished') {
-      setShowFinishModal(true);
+    for (const t of currentLegHistory) {
+      const pid = (t as any).playerId as string;
+      const vs = Number((t as any).visitScore ?? 0);
+      if (!pid) continue;
+      totals[pid] = totals[pid] ?? { sum: 0, visits: 0 };
+      totals[pid].sum += vs;
+      totals[pid].visits += 1;
     }
 
-    prevStatusRef.current = curr;
+    const out: Record<string, number> = {};
+    for (const [pid, v] of Object.entries(totals)) {
+      out[pid] = v.visits > 0 ? v.sum / v.visits : 0;
+    }
+    return out;
   }, [game]);
 
-  // Detect leg/set transition (when backend advances current leg/set)
+  const quick = useMemo(() => [26, 41, 45, 60, 81, 85], []);
+
+  // Track current leg key to show between modal ONLY when a leg finishes
   useEffect(() => {
     if (!game) return;
 
     const ms: any = (game as any).matchScore;
-    if (!ms?.sets) return;
+    if (!ms?.sets?.length) return;
 
-    // Don't show between-legs modal if the game is finished
-    if (game.status === 'finished') {
-      prevMatchScoreRef.current = ms;
+    const set = ms.sets[ms.currentSetIndex];
+    const leg = set?.legs?.[ms.currentLegIndex];
+    const legKey = `${ms.currentSetIndex}-${ms.currentLegIndex}`;
+
+    // On initial load set ref
+    if (!prevLegKeyRef.current) {
+      prevLegKeyRef.current = legKey;
       return;
     }
 
-    const prevMs = prevMatchScoreRef.current;
-    if (!prevMs?.sets) {
-      prevMatchScoreRef.current = ms;
-      return;
+    // Detect transition to a new leg (means previous leg finished)
+    if (prevLegKeyRef.current !== legKey) {
+      if (!betweenShownRef.current) {
+        setShowBetweenModal(true);
+        betweenShownRef.current = true;
+      }
+      prevLegKeyRef.current = legKey;
     }
 
-    const prevSetIdx = prevMs.currentSetIndex;
-    const prevLegIdx = prevMs.currentLegIndex;
-    const currSetIdx = ms.currentSetIndex;
-    const currLegIdx = ms.currentLegIndex;
-
-    const advanced =
-      prevSetIdx !== currSetIdx || prevLegIdx !== currLegIdx;
-
-    if (!advanced) {
-      prevMatchScoreRef.current = ms;
-      return;
+    // Reset the flag if still same leg and not in modal
+    if (!showBetweenModal) {
+      betweenShownRef.current = false;
     }
+  }, [game, showBetweenModal]);
 
-    // Previous leg winner is stored on the leg that just completed
-    const prevSet = prevMs.sets?.[prevSetIdx];
-    const prevLeg = prevSet?.legs?.[prevLegIdx];
-    const winnerId: string | undefined = prevLeg?.winnerId;
+  // Finish modal open logic
+  useEffect(() => {
+    if (!game) return;
 
-    if (!winnerId) {
-      prevMatchScoreRef.current = ms;
-      return;
+    if (game.status === 'finished' && !finishShownRef.current) {
+      setShowFinishModal(true);
+      finishShownRef.current = true;
     }
-
-    const left = game.players?.[0];
-    const right = game.players?.[1];
-    if (!left || !right) {
-      prevMatchScoreRef.current = ms;
-      return;
-    }
-
-    const winnerName = game.players.find((p) => p.id === winnerId)?.name ?? 'Winner';
-
-    // Determine if it was a set transition (set index changed OR leg index reset)
-    const isSetTransition =
-      prevSetIdx !== currSetIdx || (prevLegIdx !== currLegIdx && currLegIdx === 0);
-
-    const prevLegsWon = computeLegsWonInSet(prevSet as any);
-    const leftLegsWon = prevLegsWon[left.id] ?? 0;
-    const rightLegsWon = prevLegsWon[right.id] ?? 0;
-
-    const leftSetsWon = countSetsWon(prevMs, left.id);
-    const rightSetsWon = countSetsWon(prevMs, right.id);
-
-    setBetweenModal({
-      kind: isSetTransition ? 'set' : 'leg',
-      winnerName,
-      leftName: left.name,
-      rightName: right.name,
-      leftLegsWon,
-      rightLegsWon,
-      leftSetsWon,
-      rightSetsWon,
-    });
-
-    // Reset input when changing legs/sets
-    setInput('0');
-
-    prevMatchScoreRef.current = ms;
   }, [game]);
+
+  const possibleVisitScores = useMemo(() => computePossibleVisitScores(), []);
+
+  const isBlockedByModal = showFinishModal || showBetweenModal;
+
+  const onDigit = (d: number) => {
+    setInput((prev) => {
+      const next = prev === '0' ? String(d) : prev + String(d);
+      const num = clamp(parseInt(next, 10), 0, 180);
+      return String(num);
+    });
+  };
+
+  const onLeftArrow = () => {
+    // backspace
+    setInput((prev) => {
+      if (prev.length <= 1) return '0';
+      return prev.slice(0, -1);
+    });
+  };
+
+  const onRightArrow = () => {
+    if (!game) return;
+
+    const num = clamp(parseInt(input || '0', 10), 0, 180);
+
+    if (!possibleVisitScores.has(num)) {
+      showToast('Invalid visit score for 3 darts.', 'warning');
+      return;
+    }
+
+    postThrow(
+      { visitScore: num, dartsThrown: 3 },
+      {
+        onSuccess: () => {
+          setInput('0');
+        },
+        onError: (e: any) => {
+          const msg = e?.message ?? 'Could not submit score.';
+          showToast(msg, 'danger');
+        },
+      },
+    );
+  };
+
+  const setQuick = (n: number) => {
+    setInput(String(n));
+  };
+
+  const onUndo = () => {
+    undoThrow(undefined, {
+      onError: (e: any) => {
+        const msg = e?.message ?? 'Could not undo.';
+        showToast(msg, 'danger');
+      },
+    });
+  };
 
   if (!gameId) {
     return (
-      <div className="gp-wrap gp-center">
-        <Alert variant="danger">No game id in URL.</Alert>
+      <div className="gp-center">
+        <Alert variant="danger">Missing game id.</Alert>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="gp-wrap gp-center">
-        <Spinner animation="border" role="status" className="mb-2" />
-        <div>Loading game...</div>
+      <div className="gp-center">
+        <Spinner animation="border" role="status" />
       </div>
     );
   }
 
   if (isError || !game) {
     return (
-      <div className="gp-wrap gp-center">
+      <div className="gp-center">
         <Alert variant="danger">
-          <Alert.Heading>Could not load game</Alert.Heading>
-          <div className="mb-0 small text-muted">
-            {(error as any)?.message ?? 'Unknown error'}
-          </div>
+          Failed to load game.
+          <div style={{ opacity: 0.7, marginTop: 6 }}>{String((error as any)?.message ?? '')}</div>
         </Alert>
       </div>
     );
   }
 
-  const isFinished = game.status === 'finished';
-  const isBlockedByModal = !!betweenModal || showFinishModal;
-
-  const currentPlayer =
-    game.players.find((p) => p.id === game.currentPlayerId) ?? game.players[0];
-
-  const roundNumber = getRoundNumber(game);
-  const legNumber = getCurrentLegNumber(game);
-
-  const leftPlayer = game.players[0] ?? null;
-  const rightPlayer = game.players[1] ?? null;
-
-  const leftRemaining = leftPlayer ? scoreByPlayerId.get(leftPlayer.id)?.remaining : null;
-  const rightRemaining = rightPlayer ? scoreByPlayerId.get(rightPlayer.id)?.remaining : null;
-
-  const isCurrent = (id?: string) => id && id === game.currentPlayerId;
-
-  const canSubmitValue = (value: number) => {
-    if (!Number.isFinite(value)) return false;
-    if (value < 0 || value > 180) return false;
-    return possibleScores.has(value);
-  };
-
-  const setDigit = (d: string) => {
-    if (isFinished || posting || undoing || isBlockedByModal) return;
-
-    const next = input === '0' ? d : input + d;
-    if (next.length > 3) return;
-
-    const nextNum = Number(next);
-    if (!Number.isFinite(nextNum)) return;
-    if (nextNum > 180) return;
-
-    // If forming 3 digits, block impossible totals (179, 185, ...)
-    if (next.length === 3 && !possibleScores.has(nextNum)) return;
-
-    setInput(next);
-  };
-
-  const setQuick = (n: number) => {
-    if (isFinished || posting || undoing || isBlockedByModal) return;
-    if (!canSubmitValue(n)) return;
-    setInput(String(n));
-  };
-
-  const backspaceOnly = () => {
-    setInput((prev) => (prev.length <= 1 ? '0' : prev.slice(0, -1)));
-  };
-
-  const undoOneThrow = () => {
-    if (isFinished || posting || undoing || isBlockedByModal) return;
-
-    undoThrow(undefined, {
-      onSuccess: (newState: any) => {
-        const hist = newState?.history;
-        const last = Array.isArray(hist) ? hist[hist.length - 1] : null;
-
-        const lastScore =
-          last?.visitScore ??
-          last?.score ??
-          last?.value ??
-          null;
-
-        if (typeof lastScore === 'number' && Number.isFinite(lastScore)) {
-          setInput(String(lastScore));
-        } else {
-          setInput('0');
-        }
-      },
-      onError: (err: any) => {
-        console.error('Failed to undo', err);
-        showToast('Nothing to undo.', 'info');
-      },
-    });
-  };
-
-  // LEFT ARROW: backspace; if already 0 => undo
-  const onLeftArrow = () => {
-    if (isFinished || posting || undoing || isBlockedByModal) return;
-    if (input !== '0') return backspaceOnly();
-    undoOneThrow();
-  };
-
-  const submit = () => {
-    if (isFinished || posting || undoing || isBlockedByModal) return;
-
-    const value = Number(input);
-    if (!canSubmitValue(value)) {
-      showToast('Invalid score.', 'warning');
-      return;
-    }
-
-    if (!currentPlayer) return;
-
-    postThrow(
-      { playerId: currentPlayer.id, visitScore: value, dartsThrown: 3 },
-      {
-        onSuccess() {
-          // no toast on scoring
-          setInput('0');
-        },
-        onError(err: any) {
-          console.error('Failed to post throw', err);
-          showToast('Failed to submit score. Please try again.', 'danger');
-        },
-      }
-    );
-  };
-
-  const winnerId = getWinnerId(game);
-  const winnerName =
-    (winnerId && game.players.find((p) => p.id === winnerId)?.name) || null;
+  const resultLine = formatResultLine(game);
 
   return (
     <div className="gp-wrap">
       <div className="gp-top">
         <div className="gp-top__left">
-          <span className="gp-top__label">LEG {legNumber}</span>
-          <span className="gp-top__label">ROUND {roundNumber}</span>
+          <span className="gp-top__label">
+            LEG {legNumber} &nbsp;&nbsp; ROUND {roundNumber}
+          </span>
         </div>
 
         <div className="gp-top__right">
@@ -423,12 +375,7 @@ export default function GamePage() {
             ⚙️
           </button>
 
-          <button
-            type="button"
-            className="gp-iconBtn"
-            aria-label="Exit game"
-            onClick={() => navigate('/')}
-          >
+          <button type="button" className="gp-iconBtn" aria-label="Exit game" onClick={() => navigate('/')}>
             ✕
           </button>
         </div>
@@ -436,23 +383,19 @@ export default function GamePage() {
 
       <div className="gp-panels">
         <div className={`gp-panel ${isCurrent(leftPlayer?.id) ? 'is-current' : ''}`}>
-          <div className="gp-panel__marker">{isCurrent(leftPlayer?.id) ? '➤' : ''}</div>
+          <div className="gp-panel__marker">{isCurrent(leftPlayer?.id) ? '🎯' : ''}</div>
           <div className="gp-panel__score">{leftRemaining ?? '-'}</div>
           <div className="gp-panel__name">{leftPlayer?.name?.toUpperCase() ?? '-'}</div>
-          <div className="gp-panel__meta">
-            {(legsWonByPlayer[leftPlayer?.id ?? ''] ?? 0)} LEGS WON
-          </div>
-          <div className="gp-panel__avg">0.0</div>
+          <div className="gp-panel__meta">{(legsWonByPlayer[leftPlayer?.id ?? ''] ?? 0)} LEGS WON</div>
+          <div className="gp-panel__avg">{(avgVisitByPlayer[leftPlayer?.id ?? ''] ?? 0).toFixed(1)}</div>
         </div>
 
         <div className={`gp-panel ${isCurrent(rightPlayer?.id) ? 'is-current' : ''}`}>
-          <div className="gp-panel__marker">{isCurrent(rightPlayer?.id) ? '➤' : ''}</div>
+          <div className="gp-panel__marker">{isCurrent(rightPlayer?.id) ? '🎯' : ''}</div>
           <div className="gp-panel__score">{rightRemaining ?? '-'}</div>
           <div className="gp-panel__name">{rightPlayer?.name?.toUpperCase() ?? '-'}</div>
-          <div className="gp-panel__meta">
-            {(legsWonByPlayer[rightPlayer?.id ?? ''] ?? 0)} LEGS WON
-          </div>
-          <div className="gp-panel__avg">0.0</div>
+          <div className="gp-panel__meta">{(legsWonByPlayer[rightPlayer?.id ?? ''] ?? 0)} LEGS WON</div>
+          <div className="gp-panel__avg">{(avgVisitByPlayer[rightPlayer?.id ?? ''] ?? 0).toFixed(1)}</div>
         </div>
       </div>
 
@@ -473,18 +416,6 @@ export default function GamePage() {
           </button>
         ))}
 
-        {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
-          <button
-            key={d}
-            type="button"
-            className="gp-key"
-            onClick={() => setDigit(d)}
-            disabled={posting || undoing || isFinished || isBlockedByModal}
-          >
-            {d}
-          </button>
-        ))}
-
         <button
           type="button"
           className="gp-key gp-key--action"
@@ -497,9 +428,10 @@ export default function GamePage() {
 
         <button
           type="button"
-          className="gp-key"
-          onClick={() => setDigit('0')}
+          className="gp-key gp-key--action"
+          onClick={() => onDigit(0)}
           disabled={posting || undoing || isFinished || isBlockedByModal}
+          aria-label="0"
         >
           0
         </button>
@@ -507,101 +439,93 @@ export default function GamePage() {
         <button
           type="button"
           className="gp-key gp-key--action"
-          onClick={submit}
+          onClick={onRightArrow}
           disabled={posting || undoing || isFinished || isBlockedByModal}
           aria-label="Submit"
         >
           ›
         </button>
+
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => (
+          <button
+            key={`d-${d}`}
+            type="button"
+            className="gp-key"
+            onClick={() => onDigit(d)}
+            disabled={posting || undoing || isFinished || isBlockedByModal}
+          >
+            {d}
+          </button>
+        ))}
+
+        <button
+          type="button"
+          className="gp-key gp-key--action"
+          onClick={onUndo}
+          disabled={posting || undoing || isFinished || isBlockedByModal}
+          aria-label="Undo"
+        >
+          ↩
+        </button>
       </div>
 
-      {/* BETWEEN LEGS/SETS MODAL */}
+      {/* Between-legs modal */}
       <Modal
-        show={!!betweenModal}
-        onHide={() => {}}
+        show={showBetweenModal}
         centered
-        backdrop="static"
-        keyboard={false}
+        onHide={() => setShowBetweenModal(false)}
         contentClassName="gp-finishModal"
       >
         <Modal.Header className="gp-finishModal__header">
-          <Modal.Title className="gp-finishModal__title">
-            {betweenModal?.kind === 'set' ? 'Set Finished' : 'Leg Finished'}
-          </Modal.Title>
+          <Modal.Title className="gp-finishModal__title">LEG FINISHED</Modal.Title>
         </Modal.Header>
 
         <Modal.Body className="gp-finishModal__body">
-          <div className="gp-finishModal__winner">
-            Winner:{' '}
-            <span className="gp-finishModal__winnerName">
-              {betweenModal?.winnerName ?? 'N/A'}
-            </span>
-          </div>
-
-          <div className="gp-between__line">
-            {betweenModal?.leftName} {betweenModal?.leftLegsWon ?? 0} –{' '}
-            {betweenModal?.rightLegsWon ?? 0} {betweenModal?.rightName} (legs in set)
-          </div>
-
-          <div className="gp-between__line">
-            Sets: {betweenModal?.leftSetsWon ?? 0} – {betweenModal?.rightSetsWon ?? 0}
-          </div>
+          <div className="gp-between__line">Next leg is ready.</div>
         </Modal.Body>
 
         <Modal.Footer className="gp-finishModal__footer">
-          <button
-            type="button"
-            className="gp-finishBtn gp-finishBtn--primary"
-            onClick={() => setBetweenModal(null)}
-          >
-            Next
+          <button type="button" className="gp-finishBtn gp-finishBtn--primary" onClick={() => setShowBetweenModal(false)}>
+            NEXT
           </button>
         </Modal.Footer>
       </Modal>
 
-      {/* FINISH MODAL */}
-      <Modal
-        show={showFinishModal}
-        onHide={() => setShowFinishModal(false)}
-        centered
-        backdrop="static"
-        keyboard={false}
-        contentClassName="gp-finishModal"
-      >
+      {/* Finish modal */}
+      <Modal show={showFinishModal} centered onHide={() => setShowFinishModal(false)} contentClassName="gp-finishModal">
         <Modal.Header className="gp-finishModal__header">
-          <Modal.Title className="gp-finishModal__title">Game Finished</Modal.Title>
+          <Modal.Title className="gp-finishModal__title">MATCH FINISHED</Modal.Title>
         </Modal.Header>
 
         <Modal.Body className="gp-finishModal__body">
           <div className="gp-finishModal__winner">
-            {winnerName ? (
-              <>
-                Winner:{' '}
-                <span className="gp-finishModal__winnerName">{winnerName}</span>
-              </>
-            ) : (
-              'Winner: N/A'
-            )}
+            Winner: <span className="gp-finishModal__winnerName">{winnerName || '-'}</span>
           </div>
 
-          <div className="gp-finishModal__result">{formatResultLine(game)}</div>
+          {resultLine ? <div className="gp-finishModal__result">{resultLine}</div> : null}
         </Modal.Body>
 
         <Modal.Footer className="gp-finishModal__footer">
           <button
             type="button"
-            className="gp-finishBtn gp-finishBtn--secondary"
-            onClick={() => navigate('/')}
+            className="gp-finishBtn"
+            onClick={() => {
+              setShowFinishModal(false);
+              navigate('/');
+            }}
           >
-            End
+            END
           </button>
 
           <button
             type="button"
             className="gp-finishBtn gp-finishBtn--primary"
-            onClick={() => navigate('/new-game')}
+            onClick={() => {
+              setShowFinishModal(false);
+              navigate('/new-game');
+            }}
           >
-            New Game
+            NEW GAME
           </button>
         </Modal.Footer>
       </Modal>
