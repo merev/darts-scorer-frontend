@@ -3,9 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Alert, Modal, Spinner } from 'react-bootstrap';
 import { GiDart } from 'react-icons/gi';
 
-import { useGame, usePostThrow, useUndoThrow } from '../api/games';
+import { useGame, usePostThrow, useUndoThrow, useCreateGame } from '../api/games';
 import { useToast } from '../components/ToastProvider';
-import type { GameState, SetScore } from '../types/darts';
+import type { GameState, SetScore, GameConfig } from '../types/darts';
 
 import '../styles/GamePage.css';
 
@@ -136,14 +136,12 @@ function buildFinalStandings(game: GameState) {
   const standings = (game.players ?? []).map((p) => {
     const setsWon = hasMatchScore ? countSetsWon(ms, p.id) : 0;
     const legsWon = hasMatchScore ? countLegsWonTotal(ms, p.id) : 0;
-    const remaining = (game.scores ?? []).find((s: any) => s.playerId === p.id)?.remaining;
 
     return {
       id: p.id,
       name: p.name ?? '-',
       setsWon,
       legsWon,
-      remaining: typeof remaining === 'number' ? remaining : null,
     };
   });
 
@@ -190,6 +188,9 @@ export default function GamePage() {
   const { mutate: postThrow, isPending: posting } = usePostThrow(gameId);
   const { mutate: undoThrow, isPending: undoing } = useUndoThrow(gameId);
 
+  // ✅ for restart
+  const { mutateAsync: createGame, isPending: restarting } = useCreateGame();
+
   const [input, setInput] = useState<string>('0');
 
   // Finish modal
@@ -217,7 +218,7 @@ export default function GamePage() {
     return computeLegsWonInSet(set);
   }, [game]);
 
-  // ✅ Average per player for current leg ONLY, ignoring busts (missed visits)
+  // ✅ Average per player for current leg ONLY, ignoring busts
   const avgVisitByPlayer = useMemo(() => {
     if (!game) return {};
 
@@ -240,11 +241,7 @@ export default function GamePage() {
       const cand = cur - visitScore;
 
       const isBust = cand < 0 || (doubleOut && cand === 1);
-
-      if (isBust) {
-        // miss: do not count & do not change remaining
-        continue;
-      }
+      if (isBust) continue;
 
       remaining[pid] = cand;
 
@@ -329,6 +326,31 @@ export default function GamePage() {
     setInput('0');
     prevMatchScoreRef.current = ms;
   }, [game]);
+
+  const handleRestart = async () => {
+    if (!game) return;
+
+    const cfg = (game as any).config as GameConfig | undefined;
+    const playerIds = (game.players ?? []).map((p) => p.id).filter(Boolean);
+
+    if (!cfg || playerIds.length < 1) {
+      showToast('Cannot restart: missing config or players.', 'danger');
+      return;
+    }
+
+    if (playerIds.length > MAX_PLAYERS) {
+      showToast(`Cannot restart: max ${MAX_PLAYERS} players.`, 'danger');
+      return;
+    }
+
+    try {
+      const newGame = await createGame({ config: cfg, playerIds });
+      navigate(`/game/${newGame.id}`);
+    } catch (e) {
+      console.error('Restart failed', e);
+      showToast('Failed to restart game. Please try again.', 'danger');
+    }
+  };
 
   if (!gameId) {
     return (
@@ -452,7 +474,7 @@ export default function GamePage() {
     );
   };
 
-  // ✅ Quick buttons submit directly, no input “flash”
+  // Quick buttons submit directly, no input “flash”
   const setQuick = (n: number) => {
     submitValue(n);
   };
@@ -461,7 +483,7 @@ export default function GamePage() {
     setInput((prev) => (prev.length <= 1 ? '0' : prev.slice(0, -1)));
   };
 
-  // ✅ Undo: current leg only; after undo, prefill the undone visit score in input
+  // Undo: current leg only; after undo, prefill undone visit score
   const undoOneThrow = () => {
     if (isFinished || posting || undoing || isBlockedByModal) return;
 
@@ -483,7 +505,6 @@ export default function GamePage() {
     });
   };
 
-  // Left arrow: backspace if typing; otherwise undo
   const onLeftArrow = () => {
     if (isFinished || posting || undoing || isBlockedByModal) return;
     if (input !== '0') return backspaceOnly();
@@ -504,12 +525,7 @@ export default function GamePage() {
         </div>
 
         <div className="gp-top__right">
-          <button
-            type="button"
-            className="gp-iconBtn"
-            aria-label="Settings"
-            onClick={() => showToast('Settings coming soon.', 'info')}
-          >
+          <button type="button" className="gp-iconBtn" aria-label="Settings" onClick={() => showToast('Settings coming soon.', 'info')}>
             ⚙️
           </button>
 
@@ -520,10 +536,7 @@ export default function GamePage() {
       </div>
 
       {/* SCOREBOARD */}
-      <div
-        className={`gp-panels gp-panels--cols-${cols} gp-panels--rows-${rows}`}
-        style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
-      >
+      <div className={`gp-panels gp-panels--cols-${cols} gp-panels--rows-${rows}`} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
         {Array.from({ length: totalSlots }).map((_, idx) => {
           const p = players[idx];
           if (!p) return <div key={`empty-${idx}`} className="gp-panel gp-panel--empty" />;
@@ -553,55 +566,26 @@ export default function GamePage() {
       {/* KEYPAD */}
       <div className="gp-pad">
         {quick.map((n) => (
-          <button
-            key={`q-${n}`}
-            type="button"
-            className="gp-key gp-key--quick"
-            onClick={() => setQuick(n)}
-            disabled={posting || undoing || isFinished || isBlockedByModal}
-          >
+          <button key={`q-${n}`} type="button" className="gp-key gp-key--quick" onClick={() => setQuick(n)} disabled={posting || undoing || isFinished || isBlockedByModal}>
             {n}
           </button>
         ))}
 
         {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
-          <button
-            key={d}
-            type="button"
-            className="gp-key"
-            onClick={() => setDigit(d)}
-            disabled={posting || undoing || isFinished || isBlockedByModal}
-          >
+          <button key={d} type="button" className="gp-key" onClick={() => setDigit(d)} disabled={posting || undoing || isFinished || isBlockedByModal}>
             {d}
           </button>
         ))}
 
-        <button
-          type="button"
-          className="gp-key gp-key--action"
-          onClick={onLeftArrow}
-          disabled={posting || undoing || isFinished || isBlockedByModal}
-          aria-label="Backspace / Undo"
-        >
+        <button type="button" className="gp-key gp-key--action" onClick={onLeftArrow} disabled={posting || undoing || isFinished || isBlockedByModal} aria-label="Backspace / Undo">
           ‹
         </button>
 
-        <button
-          type="button"
-          className="gp-key"
-          onClick={() => setDigit('0')}
-          disabled={posting || undoing || isFinished || isBlockedByModal}
-        >
+        <button type="button" className="gp-key" onClick={() => setDigit('0')} disabled={posting || undoing || isFinished || isBlockedByModal}>
           0
         </button>
 
-        <button
-          type="button"
-          className="gp-key gp-key--action"
-          onClick={submit}
-          disabled={posting || undoing || isFinished || isBlockedByModal}
-          aria-label="Submit"
-        >
+        <button type="button" className="gp-key gp-key--action" onClick={submit} disabled={posting || undoing || isFinished || isBlockedByModal} aria-label="Submit">
           ›
         </button>
       </div>
@@ -609,9 +593,7 @@ export default function GamePage() {
       {/* BETWEEN LEGS / SETS MODAL */}
       <Modal show={!!betweenModal} centered onHide={() => setBetweenModal(null)} contentClassName="gp-finishModal">
         <Modal.Header className="gp-finishModal__header">
-          <Modal.Title className="gp-finishModal__title">
-            {betweenModal?.kind === 'set' ? 'SET FINISHED' : 'LEG FINISHED'}
-          </Modal.Title>
+          <Modal.Title className="gp-finishModal__title">{betweenModal?.kind === 'set' ? 'SET FINISHED' : 'LEG FINISHED'}</Modal.Title>
         </Modal.Header>
 
         <Modal.Body className="gp-finishModal__body">
@@ -682,6 +664,17 @@ export default function GamePage() {
           <button type="button" className="gp-finishBtn" onClick={() => navigate('/')}>
             END
           </button>
+
+          <button
+            type="button"
+            className="gp-finishBtn"
+            onClick={handleRestart}
+            disabled={restarting}
+            aria-label="Restart game with same settings"
+          >
+            {restarting ? 'RESTARTING…' : 'RESTART'}
+          </button>
+
           <button type="button" className="gp-finishBtn gp-finishBtn--primary" onClick={() => navigate('/new-game')}>
             NEW GAME
           </button>

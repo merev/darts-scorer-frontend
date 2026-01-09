@@ -48,17 +48,18 @@
   color: var(--text) !important;
   background-color: var(--bg-elev-2) !important;
   border: 1px solid var(--border) !important;
+  border-radius: 30px;
 }
 
 /* Keep hover effect, but NOT blue (applies to ALL 4 buttons) */
-.home-btn.primary:hover,
+/* .home-btn.primary:hover,
 .home-btn.secondary:hover,
 .home-btn.tertiary:hover,
 .home-btn.subtle:hover {
   color: var(--text) !important;
   background-color: var(--btn-hover-bg) !important;
   border-color: var(--btn-hover-border) !important;
-}
+} */
 
 /* Make transition smooth */
 .home-btn.primary,
