@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Alert, Modal, Spinner } from 'react-bootstrap';
+import { GiDart } from 'react-icons/gi';
 
 import { useGame, usePostThrow, useUndoThrow } from '../api/games';
 import { useToast } from '../components/ToastProvider';
@@ -16,10 +17,6 @@ function computeLegsWonInSet(set: SetScore): Record<string, number> {
     wins[leg.winnerId] = (wins[leg.winnerId] ?? 0) + 1;
   }
   return wins;
-}
-
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
 }
 
 function getRoundNumber(game: GameState) {
@@ -66,7 +63,6 @@ function getCurrentLegHistory(game: GameState) {
   const history = ((game as any).history ?? []) as any[];
   const ms: any = (game as any).matchScore;
 
-  // no sets/legs => all history is current leg
   if (!ms?.sets?.length) return history;
 
   const set = ms.sets[ms.currentSetIndex];
@@ -140,17 +136,6 @@ function countSetsWon(matchScore: any, playerId: string): number {
   return won;
 }
 
-/** ✅ Dart icon (colored via currentColor) */
-function TurnDartIcon() {
-  return (
-    <svg className="gp-turnDart" viewBox="0 0 64 64" aria-hidden="true">
-      <path d="M8 40 L28 20 L44 36 L24 56 Z" />
-      <path d="M28 20 L52 12 L60 20 L44 36 Z" />
-      <path d="M8 40 L4 44 L20 60 L24 56 Z" />
-    </svg>
-  );
-}
-
 export default function GamePage() {
   const params = useParams();
   const navigate = useNavigate();
@@ -158,7 +143,6 @@ export default function GamePage() {
 
   const gameId = (params.id || (params as any).gameId || '') as string;
 
-  // Full-bleed mode only for this route
   useEffect(() => {
     document.body.classList.add('route-game');
     return () => document.body.classList.remove('route-game');
@@ -170,11 +154,9 @@ export default function GamePage() {
 
   const [input, setInput] = useState<string>('0');
 
-  // Finish modal
   const [showFinishModal, setShowFinishModal] = useState(false);
   const prevStatusRef = useRef<string | null>(null);
 
-  // Between-legs/sets modal
   const [betweenModal, setBetweenModal] = useState<BetweenLegsModalInfo | null>(null);
   const prevMatchScoreRef = useRef<any>(null);
 
@@ -195,10 +177,9 @@ export default function GamePage() {
     return computeLegsWonInSet(set);
   }, [game]);
 
-  // ✅ AVG per player, current leg only (avg visit score)
+  // avg visit score per player for CURRENT LEG only
   const avgVisitByPlayer = useMemo(() => {
     if (!game) return {};
-
     const currentLegHist = getCurrentLegHistory(game);
     const totals: Record<string, { sum: number; visits: number }> = {};
 
@@ -225,7 +206,6 @@ export default function GamePage() {
     if (isError) showToast('Could not load game. Please try again.', 'danger');
   }, [isError, showToast]);
 
-  // Detect game finished => open finish modal once
   useEffect(() => {
     if (!game) return;
 
@@ -239,7 +219,6 @@ export default function GamePage() {
     prevStatusRef.current = curr;
   }, [game]);
 
-  // Detect leg/set transition (when backend advances current leg/set)
   useEffect(() => {
     if (!game) return;
 
@@ -377,40 +356,51 @@ export default function GamePage() {
     setInput(next);
   };
 
-  const setQuick = (n: number) => {
+  // ✅ Submit a concrete value immediately (used by quick buttons)
+  const submitValue = (value: number) => {
     if (isFinished || posting || undoing || isBlockedByModal) return;
-    if (!canSubmitValue(n)) return;
+    if (!currentPlayer) return;
+    if (!canSubmitValue(value)) {
+      showToast('Invalid score.', 'warning');
+      return;
+    }
+
+    postThrow(
+      { playerId: currentPlayer.id, visitScore: value, dartsThrown: 3 },
+      {
+        onSuccess() {
+          setInput('0');
+        },
+        onError(err: any) {
+          console.error('Failed to post throw', err);
+          showToast('Failed to submit score. Please try again.', 'danger');
+        },
+      }
+    );
+  };
+
+  // ✅ Quick: auto-submit on tap
+  const onQuickTap = (n: number) => {
+    // set input mainly for UI feedback but submit doesn't depend on it
     setInput(String(n));
+    submitValue(n);
   };
 
   const backspaceOnly = () => {
     setInput((prev) => (prev.length <= 1 ? '0' : prev.slice(0, -1)));
   };
 
-  // ✅ only undo if there is at least 1 throw in CURRENT LEG
   const undoOneTurnInCurrentLeg = () => {
     if (!game) return;
     if (isFinished || posting || undoing || isBlockedByModal) return;
 
     const currentLegHist = getCurrentLegHistory(game);
-    if (!currentLegHist.length) {
-      // already at first turn of current leg
-      return;
-    }
+    if (!currentLegHist.length) return;
 
     undoThrow(undefined, {
-      onSuccess: (newState: any) => {
-        // after undo, set input to last visitScore in CURRENT LEG (or 0 if none)
-        const tmpGame = newState as GameState;
-        const hist = getCurrentLegHistory(tmpGame);
-        const last = hist.length ? hist[hist.length - 1] : null;
-        const lastScore = last?.visitScore ?? last?.score ?? last?.value ?? null;
-
-        if (typeof lastScore === 'number' && Number.isFinite(lastScore)) {
-          setInput(String(lastScore));
-        } else {
-          setInput('0');
-        }
+      onSuccess: () => {
+        // leave input stable to avoid visual “flash”
+        setInput('0');
       },
       onError: (err: any) => {
         console.error('Failed to undo', err);
@@ -428,30 +418,7 @@ export default function GamePage() {
     undoOneTurnInCurrentLeg();
   };
 
-  const submit = () => {
-    if (isFinished || posting || undoing || isBlockedByModal) return;
-
-    const value = Number(input);
-    if (!canSubmitValue(value)) {
-      showToast('Invalid score.', 'warning');
-      return;
-    }
-
-    if (!currentPlayer) return;
-
-    postThrow(
-      { playerId: currentPlayer.id, visitScore: value, dartsThrown: 3 },
-      {
-        onSuccess() {
-          setInput('0');
-        },
-        onError(err: any) {
-          console.error('Failed to post throw', err);
-          showToast('Failed to submit score. Please try again.', 'danger');
-        },
-      }
-    );
-  };
+  const submit = () => submitValue(Number(input));
 
   const winnerId = getWinnerId(game);
   const winnerName = (winnerId && game.players.find((p) => p.id === winnerId)?.name) || null;
@@ -465,8 +432,6 @@ export default function GamePage() {
         </div>
 
         <div className="gp-top__right">
-          <span className="gp-top__live">LIVE</span>
-
           <button
             type="button"
             className="gp-iconBtn"
@@ -476,12 +441,7 @@ export default function GamePage() {
             ⚙️
           </button>
 
-          <button
-            type="button"
-            className="gp-iconBtn"
-            aria-label="Exit game"
-            onClick={() => navigate('/')}
-          >
+          <button type="button" className="gp-iconBtn" aria-label="Exit game" onClick={() => navigate('/')}>
             ✕
           </button>
         </div>
@@ -489,7 +449,9 @@ export default function GamePage() {
 
       <div className="gp-panels">
         <div className={`gp-panel ${isCurrent(leftPlayer?.id) ? 'is-current' : ''}`}>
-          <div className="gp-panel__marker">{isCurrent(leftPlayer?.id) ? <TurnDartIcon /> : null}</div>
+          <div className="gp-panel__marker">
+            {isCurrent(leftPlayer?.id) ? <GiDart className="gp-turnDartIcon" /> : null}
+          </div>
           <div className="gp-panel__score">{leftRemaining ?? '-'}</div>
           <div className="gp-panel__name">{leftPlayer?.name?.toUpperCase() ?? '-'}</div>
           <div className="gp-panel__meta">{(legsWonByPlayer[leftPlayer?.id ?? ''] ?? 0)} LEGS WON</div>
@@ -497,7 +459,9 @@ export default function GamePage() {
         </div>
 
         <div className={`gp-panel ${isCurrent(rightPlayer?.id) ? 'is-current' : ''}`}>
-          <div className="gp-panel__marker">{isCurrent(rightPlayer?.id) ? <TurnDartIcon /> : null}</div>
+          <div className="gp-panel__marker">
+            {isCurrent(rightPlayer?.id) ? <GiDart className="gp-turnDartIcon" /> : null}
+          </div>
           <div className="gp-panel__score">{rightRemaining ?? '-'}</div>
           <div className="gp-panel__name">{rightPlayer?.name?.toUpperCase() ?? '-'}</div>
           <div className="gp-panel__meta">{(legsWonByPlayer[rightPlayer?.id ?? ''] ?? 0)} LEGS WON</div>
@@ -515,7 +479,8 @@ export default function GamePage() {
             key={`q-${n}`}
             type="button"
             className="gp-key gp-key--quick"
-            onClick={() => setQuick(n)}
+            onClick={() => onQuickTap(n)}
+            // keep disabled to prevent double submits, but CSS will NOT dim => no blink
             disabled={posting || undoing || isFinished || isBlockedByModal}
           >
             {n}
@@ -534,7 +499,6 @@ export default function GamePage() {
           </button>
         ))}
 
-        {/* bottom row: backspace/undo, 0, submit */}
         <button
           type="button"
           className="gp-key gp-key--action"
@@ -587,12 +551,7 @@ export default function GamePage() {
       </Modal>
 
       {/* FINISH MODAL */}
-      <Modal
-        show={showFinishModal}
-        centered
-        onHide={() => setShowFinishModal(false)}
-        contentClassName="gp-finishModal"
-      >
+      <Modal show={showFinishModal} centered onHide={() => setShowFinishModal(false)} contentClassName="gp-finishModal">
         <Modal.Header className="gp-finishModal__header">
           <Modal.Title className="gp-finishModal__title">MATCH FINISHED</Modal.Title>
         </Modal.Header>

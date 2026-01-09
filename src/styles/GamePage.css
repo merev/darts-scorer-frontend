@@ -19,9 +19,6 @@ body.route-game #root {
   /* Quick-score button theming (default = LIGHT theme behavior) */
   --gp-quick-bg: rgba(0, 0, 0, 0.06); /* greyer on light */
   --gp-quick-bg-hover: rgba(0, 0, 0, 0.09);
-
-  /* Turn marker color */
-  --gp-turn: var(--primary, var(--accent, #ff3b30));
 }
 
 /* DARK theme overrides (covers common theme implementations) */
@@ -62,7 +59,7 @@ body.theme-dark .gp-wrap {
 }
 
 .gp-top__label,
-.gp-top__live {
+.gp-top__stats {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -98,7 +95,6 @@ body.theme-dark .gp-wrap {
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
 
-  /* ✅ center everything in the player box */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -118,21 +114,15 @@ body.theme-dark .gp-wrap {
   position: absolute;
   left: 10px;
   top: 14px;
-  /* force icon look, not text arrow */
-  font-size: 0;
   line-height: 0;
-
-  /* color for the dart icon */
-  color: var(--primary, var(--accent, #3b82f6));
 }
 
-.gp-turnDart {
-  width: 20px;
-  height: 20px;
-  display: block;
-  fill: currentColor;
+/* ✅ GiDart styling */
+.gp-turnDartIcon {
+  width: 22px;
+  height: 22px;
+  color: #3b82f6; /* force blue */
 }
-
 
 .gp-panel__score {
   font-size: 48px;
@@ -199,25 +189,31 @@ body.theme-dark .gp-wrap {
   color: var(--text);
   font-size: 26px;
   font-weight: 900;
+
+  /* helps avoid tap highlight flashes on iOS */
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* spacer cell to keep 0 centered on last row */
-.gp-key--spacer {
-  background: transparent;
-  border: 1px solid var(--border);
-  opacity: 0.0;
-  pointer-events: none;
-}
-
-/* ✅ QUICK SCORE FIX */
+/* ✅ QUICK SCORE */
 .gp-key--quick {
   font-size: 24px;
   color: var(--text);
   background: var(--gp-quick-bg);
 }
 
-.gp-key--quick:hover:not(:disabled) {
-  background: var(--gp-quick-bg-hover);
+/* ✅ No hover effect on touch devices; hover only for real mouse pointers */
+@media (hover: hover) and (pointer: fine) {
+  .gp-key--quick:hover:not(:disabled) {
+    background: var(--gp-quick-bg-hover);
+  }
+}
+
+/* ✅ Prevent “stuck hover/active” background on mobile */
+.gp-key--quick:active:not(:disabled),
+.gp-key--quick:focus:not(:focus-visible),
+.gp-key--quick:focus-visible {
+  background: var(--gp-quick-bg);
+  outline: none;
 }
 
 .gp-key--action {
@@ -225,8 +221,9 @@ body.theme-dark .gp-wrap {
   color: var(--text-muted);
 }
 
+/* ✅ Stop the “blink”: don’t visually dim disabled keys */
 .gp-key:disabled {
-  opacity: 0.45;
+  opacity: 1;
 }
 
 /* Finish modal (theme-aware) */
@@ -283,19 +280,4 @@ body.theme-dark .gp-wrap {
 
 .gp-finishBtn--primary {
   background: rgba(255, 255, 255, 0.10);
-}
-
-/* optional floating undo button */
-.gp-fabUndo {
-  position: fixed;
-  right: 14px;
-  bottom: 14px;
-  width: 52px;
-  height: 52px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--bg-elev-1);
-  color: var(--text);
-  font-size: 22px;
-  font-weight: 900;
 }
