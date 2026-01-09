@@ -118,7 +118,12 @@ body.theme-dark .gp-wrap {
   position: absolute;
   left: 10px;
   top: 14px;
-  color: var(--gp-turn);
+  /* force icon look, not text arrow */
+  font-size: 0;
+  line-height: 0;
+
+  /* color for the dart icon */
+  color: var(--primary, var(--accent, #3b82f6));
 }
 
 .gp-turnDart {
@@ -127,6 +132,7 @@ body.theme-dark .gp-wrap {
   display: block;
   fill: currentColor;
 }
+
 
 .gp-panel__score {
   font-size: 48px;

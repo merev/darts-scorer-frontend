@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Alert, Modal, Spinner } from 'react-bootstrap';
 
-import { useGame, usePostThrow } from '../api/games';
+import { useGame, usePostThrow, useUndoThrow } from '../api/games';
 import { useToast } from '../components/ToastProvider';
 import type { GameState, SetScore } from '../types/darts';
 
@@ -60,6 +60,31 @@ function getCurrentLegNumber(game: GameState) {
   const set = ms.sets[ms.currentSetIndex];
   const leg = set?.legs?.[ms.currentLegIndex];
   return leg?.legNumber ?? ms.currentLegIndex + 1;
+}
+
+function getCurrentLegHistory(game: GameState) {
+  const history = ((game as any).history ?? []) as any[];
+  const ms: any = (game as any).matchScore;
+
+  // no sets/legs => all history is current leg
+  if (!ms?.sets?.length) return history;
+
+  const set = ms.sets[ms.currentSetIndex];
+  const legIdx = ms.currentLegIndex;
+
+  let lastFinishedAt: string | null = null;
+
+  if (legIdx > 0) {
+    lastFinishedAt = set?.legs?.[legIdx - 1]?.finishedAt ?? null;
+  } else if (ms.currentSetIndex > 0) {
+    const prevSet = ms.sets[ms.currentSetIndex - 1];
+    lastFinishedAt = prevSet?.legs?.[prevSet.legs.length - 1]?.finishedAt ?? null;
+  }
+
+  if (!lastFinishedAt) return history;
+
+  const t0 = new Date(lastFinishedAt).getTime();
+  return history.filter((t) => new Date(t.createdAt).getTime() > t0);
 }
 
 function computePossibleVisitScores(): Set<number> {
@@ -141,6 +166,7 @@ export default function GamePage() {
 
   const { data: game, isLoading, isError, error } = useGame(gameId);
   const { mutate: postThrow, isPending: posting } = usePostThrow(gameId);
+  const { mutate: undoThrow, isPending: undoing } = useUndoThrow(gameId);
 
   const [input, setInput] = useState<string>('0');
 
@@ -167,6 +193,30 @@ export default function GamePage() {
     const set = ms.sets[ms.currentSetIndex];
     if (!set) return {};
     return computeLegsWonInSet(set);
+  }, [game]);
+
+  // ✅ AVG per player, current leg only (avg visit score)
+  const avgVisitByPlayer = useMemo(() => {
+    if (!game) return {};
+
+    const currentLegHist = getCurrentLegHistory(game);
+    const totals: Record<string, { sum: number; visits: number }> = {};
+
+    for (const t of currentLegHist) {
+      const pid = String((t as any).playerId ?? '');
+      const vs = Number((t as any).visitScore ?? 0);
+      if (!pid) continue;
+
+      totals[pid] = totals[pid] ?? { sum: 0, visits: 0 };
+      totals[pid].sum += vs;
+      totals[pid].visits += 1;
+    }
+
+    const out: Record<string, number> = {};
+    for (const [pid, v] of Object.entries(totals)) {
+      out[pid] = v.visits > 0 ? v.sum / v.visits : 0;
+    }
+    return out;
   }, [game]);
 
   const quick = useMemo(() => [26, 41, 45, 60, 81, 85], []);
@@ -196,7 +246,6 @@ export default function GamePage() {
     const ms: any = (game as any).matchScore;
     if (!ms?.sets) return;
 
-    // Don't show between-legs modal if the game is finished
     if (game.status === 'finished') {
       prevMatchScoreRef.current = ms;
       return;
@@ -214,13 +263,11 @@ export default function GamePage() {
     const currLegIdx = ms.currentLegIndex;
 
     const advanced = prevSetIdx !== currSetIdx || prevLegIdx !== currLegIdx;
-
     if (!advanced) {
       prevMatchScoreRef.current = ms;
       return;
     }
 
-    // Previous leg winner is stored on the leg that just completed
     const prevSet = prevMs.sets?.[prevSetIdx];
     const prevLeg = prevSet?.legs?.[prevLegIdx];
     const winnerId: string | undefined = prevLeg?.winnerId;
@@ -316,7 +363,7 @@ export default function GamePage() {
   };
 
   const setDigit = (d: string) => {
-    if (isFinished || posting || isBlockedByModal) return;
+    if (isFinished || posting || undoing || isBlockedByModal) return;
 
     const next = input === '0' ? d : input + d;
     if (next.length > 3) return;
@@ -331,19 +378,58 @@ export default function GamePage() {
   };
 
   const setQuick = (n: number) => {
-    if (isFinished || posting || isBlockedByModal) return;
+    if (isFinished || posting || undoing || isBlockedByModal) return;
     if (!canSubmitValue(n)) return;
     setInput(String(n));
   };
 
-  // ✅ Back arrow now ALWAYS backspaces (no undo fallback)
-  const onLeftArrow = () => {
-    if (isFinished || posting || isBlockedByModal) return;
+  const backspaceOnly = () => {
     setInput((prev) => (prev.length <= 1 ? '0' : prev.slice(0, -1)));
   };
 
+  // ✅ only undo if there is at least 1 throw in CURRENT LEG
+  const undoOneTurnInCurrentLeg = () => {
+    if (!game) return;
+    if (isFinished || posting || undoing || isBlockedByModal) return;
+
+    const currentLegHist = getCurrentLegHistory(game);
+    if (!currentLegHist.length) {
+      // already at first turn of current leg
+      return;
+    }
+
+    undoThrow(undefined, {
+      onSuccess: (newState: any) => {
+        // after undo, set input to last visitScore in CURRENT LEG (or 0 if none)
+        const tmpGame = newState as GameState;
+        const hist = getCurrentLegHistory(tmpGame);
+        const last = hist.length ? hist[hist.length - 1] : null;
+        const lastScore = last?.visitScore ?? last?.score ?? last?.value ?? null;
+
+        if (typeof lastScore === 'number' && Number.isFinite(lastScore)) {
+          setInput(String(lastScore));
+        } else {
+          setInput('0');
+        }
+      },
+      onError: (err: any) => {
+        console.error('Failed to undo', err);
+        showToast('Nothing to undo in this leg.', 'info');
+      },
+    });
+  };
+
+  // LEFT ARROW:
+  // - if typing -> backspace
+  // - if input == 0 -> undo last turn (current leg only)
+  const onLeftArrow = () => {
+    if (isFinished || posting || undoing || isBlockedByModal) return;
+    if (input !== '0') return backspaceOnly();
+    undoOneTurnInCurrentLeg();
+  };
+
   const submit = () => {
-    if (isFinished || posting || isBlockedByModal) return;
+    if (isFinished || posting || undoing || isBlockedByModal) return;
 
     const value = Number(input);
     if (!canSubmitValue(value)) {
@@ -351,11 +437,10 @@ export default function GamePage() {
       return;
     }
 
-    const pid = String(currentPlayer?.id ?? '').trim();
-    if (!pid) return;
+    if (!currentPlayer) return;
 
     postThrow(
-      { playerId: pid, visitScore: value, dartsThrown: 3 },
+      { playerId: currentPlayer.id, visitScore: value, dartsThrown: 3 },
       {
         onSuccess() {
           setInput('0');
@@ -369,8 +454,7 @@ export default function GamePage() {
   };
 
   const winnerId = getWinnerId(game);
-  const winnerName =
-    (winnerId && game.players.find((p) => p.id === winnerId)?.name) || null;
+  const winnerName = (winnerId && game.players.find((p) => p.id === winnerId)?.name) || null;
 
   return (
     <div className="gp-wrap">
@@ -409,7 +493,7 @@ export default function GamePage() {
           <div className="gp-panel__score">{leftRemaining ?? '-'}</div>
           <div className="gp-panel__name">{leftPlayer?.name?.toUpperCase() ?? '-'}</div>
           <div className="gp-panel__meta">{(legsWonByPlayer[leftPlayer?.id ?? ''] ?? 0)} LEGS WON</div>
-          <div className="gp-panel__avg">0.0</div>
+          <div className="gp-panel__avg">{(avgVisitByPlayer[leftPlayer?.id ?? ''] ?? 0).toFixed(1)}</div>
         </div>
 
         <div className={`gp-panel ${isCurrent(rightPlayer?.id) ? 'is-current' : ''}`}>
@@ -417,7 +501,7 @@ export default function GamePage() {
           <div className="gp-panel__score">{rightRemaining ?? '-'}</div>
           <div className="gp-panel__name">{rightPlayer?.name?.toUpperCase() ?? '-'}</div>
           <div className="gp-panel__meta">{(legsWonByPlayer[rightPlayer?.id ?? ''] ?? 0)} LEGS WON</div>
-          <div className="gp-panel__avg">0.0</div>
+          <div className="gp-panel__avg">{(avgVisitByPlayer[rightPlayer?.id ?? ''] ?? 0).toFixed(1)}</div>
         </div>
       </div>
 
@@ -432,7 +516,7 @@ export default function GamePage() {
             type="button"
             className="gp-key gp-key--quick"
             onClick={() => setQuick(n)}
-            disabled={posting || isFinished || isBlockedByModal}
+            disabled={posting || undoing || isFinished || isBlockedByModal}
           >
             {n}
           </button>
@@ -444,19 +528,19 @@ export default function GamePage() {
             type="button"
             className="gp-key"
             onClick={() => setDigit(d)}
-            disabled={posting || isFinished || isBlockedByModal}
+            disabled={posting || undoing || isFinished || isBlockedByModal}
           >
             {d}
           </button>
         ))}
 
-        {/* bottom row: backspace, 0, submit */}
+        {/* bottom row: backspace/undo, 0, submit */}
         <button
           type="button"
           className="gp-key gp-key--action"
           onClick={onLeftArrow}
-          disabled={posting || isFinished || isBlockedByModal}
-          aria-label="Backspace"
+          disabled={posting || undoing || isFinished || isBlockedByModal}
+          aria-label="Backspace / Undo"
         >
           ‹
         </button>
@@ -465,7 +549,7 @@ export default function GamePage() {
           type="button"
           className="gp-key"
           onClick={() => setDigit('0')}
-          disabled={posting || isFinished || isBlockedByModal}
+          disabled={posting || undoing || isFinished || isBlockedByModal}
         >
           0
         </button>
@@ -474,7 +558,7 @@ export default function GamePage() {
           type="button"
           className="gp-key gp-key--action"
           onClick={submit}
-          disabled={posting || isFinished || isBlockedByModal}
+          disabled={posting || undoing || isFinished || isBlockedByModal}
           aria-label="Submit"
         >
           ›
@@ -482,12 +566,7 @@ export default function GamePage() {
       </div>
 
       {/* BETWEEN LEGS/SETS MODAL */}
-      <Modal
-        show={!!betweenModal}
-        centered
-        onHide={() => setBetweenModal(null)}
-        contentClassName="gp-finishModal"
-      >
+      <Modal show={!!betweenModal} centered onHide={() => setBetweenModal(null)} contentClassName="gp-finishModal">
         <Modal.Header className="gp-finishModal__header">
           <Modal.Title className="gp-finishModal__title">
             {betweenModal?.kind === 'set' ? 'SET FINISHED' : 'LEG FINISHED'}
