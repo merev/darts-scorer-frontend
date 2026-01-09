@@ -356,13 +356,19 @@ export default function GamePage() {
     setInput(next);
   };
 
-  // ✅ Submit a concrete value immediately (used by quick buttons)
-  const submitValue = (value: number) => {
+  const submitValue = (value: number, opts?: { keepInput?: boolean }) => {
     if (isFinished || posting || undoing || isBlockedByModal) return;
-    if (!currentPlayer) return;
+
     if (!canSubmitValue(value)) {
       showToast('Invalid score.', 'warning');
       return;
+    }
+
+    if (!currentPlayer) return;
+
+    // keepInput=true only for typed values (not quick buttons)
+    if (opts?.keepInput) {
+      setInput(String(value));
     }
 
     postThrow(
@@ -379,10 +385,8 @@ export default function GamePage() {
     );
   };
 
-  // ✅ Quick: auto-submit on tap
-  const onQuickTap = (n: number) => {
-    // set input mainly for UI feedback but submit doesn't depend on it
-    setInput(String(n));
+  // ✅ Quick buttons submit immediately WITHOUT showing the value in the input
+  const setQuick = (n: number) => {
     submitValue(n);
   };
 
@@ -390,17 +394,31 @@ export default function GamePage() {
     setInput((prev) => (prev.length <= 1 ? '0' : prev.slice(0, -1)));
   };
 
-  const undoOneTurnInCurrentLeg = () => {
+  // ✅ Undo: only inside CURRENT LEG and prefill the UNDONE score in the input
+  const undoOneThrow = () => {
     if (!game) return;
     if (isFinished || posting || undoing || isBlockedByModal) return;
 
     const currentLegHist = getCurrentLegHistory(game);
-    if (!currentLegHist.length) return;
+    if (!currentLegHist.length) {
+      // already at first turn of this leg
+      return;
+    }
+
+    const lastTurn = currentLegHist[currentLegHist.length - 1] as any;
+    const undoneScore =
+      lastTurn?.visitScore ??
+      lastTurn?.score ??
+      lastTurn?.value ??
+      0;
 
     undoThrow(undefined, {
       onSuccess: () => {
-        // leave input stable to avoid visual “flash”
-        setInput('0');
+        if (typeof undoneScore === 'number' && Number.isFinite(undoneScore)) {
+          setInput(String(undoneScore));
+        } else {
+          setInput('0');
+        }
       },
       onError: (err: any) => {
         console.error('Failed to undo', err);
@@ -409,16 +427,18 @@ export default function GamePage() {
     });
   };
 
-  // LEFT ARROW:
-  // - if typing -> backspace
-  // - if input == 0 -> undo last turn (current leg only)
+  // LEFT ARROW: backspace; if already 0 => undo
   const onLeftArrow = () => {
     if (isFinished || posting || undoing || isBlockedByModal) return;
     if (input !== '0') return backspaceOnly();
-    undoOneTurnInCurrentLeg();
+    undoOneThrow();
   };
 
-  const submit = () => submitValue(Number(input));
+  const submit = () => {
+    const value = Number(input);
+    // keepInput=true so typed value stays visible until request succeeds
+    submitValue(value, { keepInput: true });
+  };
 
   const winnerId = getWinnerId(game);
   const winnerName = (winnerId && game.players.find((p) => p.id === winnerId)?.name) || null;
@@ -441,7 +461,12 @@ export default function GamePage() {
             ⚙️
           </button>
 
-          <button type="button" className="gp-iconBtn" aria-label="Exit game" onClick={() => navigate('/')}>
+          <button
+            type="button"
+            className="gp-iconBtn"
+            aria-label="Exit game"
+            onClick={() => navigate('/')}
+          >
             ✕
           </button>
         </div>
@@ -479,8 +504,7 @@ export default function GamePage() {
             key={`q-${n}`}
             type="button"
             className="gp-key gp-key--quick"
-            onClick={() => onQuickTap(n)}
-            // keep disabled to prevent double submits, but CSS will NOT dim => no blink
+            onClick={() => setQuick(n)}
             disabled={posting || undoing || isFinished || isBlockedByModal}
           >
             {n}
@@ -530,7 +554,12 @@ export default function GamePage() {
       </div>
 
       {/* BETWEEN LEGS/SETS MODAL */}
-      <Modal show={!!betweenModal} centered onHide={() => setBetweenModal(null)} contentClassName="gp-finishModal">
+      <Modal
+        show={!!betweenModal}
+        centered
+        onHide={() => setBetweenModal(null)}
+        contentClassName="gp-finishModal"
+      >
         <Modal.Header className="gp-finishModal__header">
           <Modal.Title className="gp-finishModal__title">
             {betweenModal?.kind === 'set' ? 'SET FINISHED' : 'LEG FINISHED'}
@@ -544,14 +573,23 @@ export default function GamePage() {
         </Modal.Body>
 
         <Modal.Footer className="gp-finishModal__footer">
-          <button type="button" className="gp-finishBtn gp-finishBtn--primary" onClick={() => setBetweenModal(null)}>
+          <button
+            type="button"
+            className="gp-finishBtn gp-finishBtn--primary"
+            onClick={() => setBetweenModal(null)}
+          >
             NEXT
           </button>
         </Modal.Footer>
       </Modal>
 
       {/* FINISH MODAL */}
-      <Modal show={showFinishModal} centered onHide={() => setShowFinishModal(false)} contentClassName="gp-finishModal">
+      <Modal
+        show={showFinishModal}
+        centered
+        onHide={() => setShowFinishModal(false)}
+        contentClassName="gp-finishModal"
+      >
         <Modal.Header className="gp-finishModal__header">
           <Modal.Title className="gp-finishModal__title">MATCH FINISHED</Modal.Title>
         </Modal.Header>
@@ -567,7 +605,11 @@ export default function GamePage() {
           <button type="button" className="gp-finishBtn" onClick={() => navigate('/')}>
             END
           </button>
-          <button type="button" className="gp-finishBtn gp-finishBtn--primary" onClick={() => navigate('/new-game')}>
+          <button
+            type="button"
+            className="gp-finishBtn gp-finishBtn--primary"
+            onClick={() => navigate('/new-game')}
+          >
             NEW GAME
           </button>
         </Modal.Footer>
