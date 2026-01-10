@@ -36,7 +36,7 @@ function App() {
           <Route path="/new-game" element={<NewGamePage />} />
           <Route path="/game/:gameId" element={<GamePage />} />
           <Route path="/players" element={<PlayersPage />} />
-          {/* <Route path="/stats" element={<StatsPage />} /> */}
+          <Route path="/stats" element={<StatsPage />} />
         </Routes>
       </main>
 
