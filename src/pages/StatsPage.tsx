@@ -1,4 +1,3 @@
-// src/pages/StatsPage.tsx
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Badge, Button, Modal, Spinner, Table } from 'react-bootstrap';
 import { usePlayers } from '../api/players';
@@ -57,7 +56,7 @@ function PlayerSelectModal({
 
       <Modal.Body>
         <div className="d-flex align-items-center justify-content-between mb-2">
-          <div className="text-body-secondary">Choose up to {maxPlayers} players</div>
+          <div className="text-muted">Choose up to {maxPlayers} players</div>
           <Badge bg={selectedCount > 0 ? 'primary' : 'secondary'}>
             {selectedCount}/{maxPlayers}
           </Badge>
@@ -144,7 +143,7 @@ function StatsPage() {
     <div className="statsPageRoot">
       <div className="statsHeader">
         <div className="statsHeaderTitle">{headerTitle}</div>
-        <div className="statsHeaderSubtitle text-body-secondary">
+        <div className="statsHeaderSubtitle text-muted">
           Select up to 4 players to compare their stats.
         </div>
 
@@ -177,7 +176,7 @@ function StatsPage() {
           {statsLoading && (
             <div className="statsLoading">
               <Spinner animation="border" role="status" />
-              <div className="text-body-secondary mt-2">Loading stats…</div>
+              <div className="text-muted mt-2">Loading stats…</div>
             </div>
           )}
 
@@ -192,7 +191,7 @@ function StatsPage() {
               <Table className="statsTable mb-0 align-middle table-borderless">
                 <thead>
                   <tr>
-                    <th className="statsLabelCol text-body-secondary">Period</th>
+                    <th className="statsLabelCol text-muted">Period</th>
 
                     {statsArr.map((ps) => {
                       const winPct =
@@ -200,8 +199,8 @@ function StatsPage() {
 
                       return (
                         <th key={ps.playerId} className="statsPlayerCol">
-                          <div className="fw-bold">{ps.playerName?.toUpperCase()}</div>
-                          <div className="text-body-secondary small">
+                          <div className="statsPlayerName">{ps.playerName?.toUpperCase()}</div>
+                          <div className="text-muted statsPlayerMeta">
                             {ps.matchesPlayed} matches • {formatPct(winPct)} wins
                           </div>
                         </th>
@@ -212,7 +211,7 @@ function StatsPage() {
 
                 <tbody>
                   <tr className="statsRowDivider">
-                    <td className="fw-semibold text-body-secondary">AVERAGE</td>
+                    <td className="fw-semibold text-muted">AVERAGE</td>
                     {statsArr.map((ps) => (
                       <td key={ps.playerId} className="fw-semibold">
                         {ps.averageScore ? ps.averageScore.toFixed(1) : '-'}
@@ -221,14 +220,14 @@ function StatsPage() {
                   </tr>
 
                   <tr className="statsSectionRow statsRowDivider">
-                    <td className="fw-semibold text-body-secondary">FINISHING</td>
+                    <td className="fw-semibold text-muted">FINISHING</td>
                     {statsArr.map((ps) => (
                       <td key={ps.playerId} />
                     ))}
                   </tr>
 
                   <tr className="statsRowDivider">
-                    <td className="text-body-secondary fw-semibold">TOP FINISH</td>
+                    <td className="text-muted fw-semibold">TOP FINISH</td>
                     {statsArr.map((ps) => (
                       <td key={ps.playerId} className="fw-semibold">
                         {ps.bestCheckout ?? '-'}
@@ -237,14 +236,14 @@ function StatsPage() {
                   </tr>
 
                   <tr className="statsSectionRow statsRowDivider">
-                    <td className="fw-semibold text-body-secondary">BEST RECORDS</td>
+                    <td className="fw-semibold text-muted">BEST RECORDS</td>
                     {statsArr.map((ps) => (
                       <td key={ps.playerId} />
                     ))}
                   </tr>
 
                   <tr className="statsRowDivider">
-                    <td className="text-body-secondary fw-semibold">MATCHES WON</td>
+                    <td className="text-muted fw-semibold">MATCHES WON</td>
                     {statsArr.map((ps) => (
                       <td key={ps.playerId} className="fw-semibold">
                         {ps.matchesWon}
@@ -253,7 +252,7 @@ function StatsPage() {
                   </tr>
 
                   <tr className="statsRowDivider">
-                    <td className="text-body-secondary fw-semibold">MATCHES PLAYED</td>
+                    <td className="text-muted fw-semibold">MATCHES PLAYED</td>
                     {statsArr.map((ps) => (
                       <td key={ps.playerId} className="fw-semibold">
                         {ps.matchesPlayed}
@@ -262,7 +261,7 @@ function StatsPage() {
                   </tr>
 
                   <tr className="statsSectionRow statsRowDivider">
-                    <td className="fw-semibold text-body-secondary">RECORDS+</td>
+                    <td className="fw-semibold text-muted">RECORDS+</td>
                     {statsArr.map((ps) => (
                       <td key={ps.playerId} />
                     ))}
@@ -270,7 +269,7 @@ function StatsPage() {
 
                   {['60+', '80+', '100+', '120+', '140+', '171', '180'].map((label) => (
                     <tr key={label} className="statsRowDivider">
-                      <td className="text-body-secondary fw-semibold">{label}</td>
+                      <td className="text-muted fw-semibold">{label}</td>
                       {statsArr.map((ps) => (
                         <td key={ps.playerId} className="fw-semibold">
                           -

@@ -1,30 +1,50 @@
-/* src/pages/StatsPage.css */
+/* =========================
+   IMPORTANT: Your theme system uses:
+   - .app-root.theme-light / .theme-dark (tokens)
+   - body.theme-light / body.theme-dark (tokens for portals)
+   - Bootstrap vars overridden inside .app-main
+   So DO NOT use [data-bs-theme] selectors here.
+   ========================= */
 
-/* Remove free space: edge-to-edge */
-.statsPageRoot {
-  padding: 0 !important;
-  margin: 0 !important;
+/* Remove free space from .app-main for this page only.
+   Your App.css sets:
+   .app-main { padding: 1.5rem 1rem; }
+   and on >=768px: padding: 2rem 2rem; :contentReference[oaicite:4]{index=4}
+*/
+.app-main .statsPageRoot {
+  margin: -1.5rem -1rem;
+  padding: 0;
 }
 
-/* Slightly smaller typography overall */
+@media (min-width: 768px) {
+  .app-main .statsPageRoot {
+    margin: -2rem -2rem;
+  }
+}
+
+/* Slightly smaller font overall */
 .statsPageRoot {
   font-size: 0.92rem;
+  color: var(--text);
 }
 
+/* Header spacing */
 .statsHeader {
   padding: 12px 12px 10px 12px;
 }
 
 .statsHeaderTitle {
   font-size: 1.35rem;
-  font-weight: 700;
+  font-weight: 750;
   line-height: 1.2;
+  color: var(--text);
 }
 
 .statsHeaderSubtitle {
   margin-top: 2px;
 }
 
+/* Actions */
 .statsHeaderActions {
   display: flex;
   gap: 10px;
@@ -32,64 +52,51 @@
   flex-wrap: wrap;
 }
 
-/* Loading block without extra margins */
+/* Loading block */
 .statsLoading {
   padding: 24px 0;
   text-align: center;
 }
 
-/* Horizontal scroll when 3–4 players */
+/* Horizontal scroll for 3–4 players */
 .statsTableWrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 0 8px 8px 8px; /* tiny breathing room, not “free space” */
+  padding: 0 8px 10px 8px;
 }
 
-/* Table sizing + subtle separators */
+/* Table: force theme-correct colors using YOUR tokens */
 .statsTable {
   min-width: 520px;
   background: transparent !important;
 
-  /* The IMPORTANT part: neutralize Bootstrap table variables */
+  /* Force Bootstrap table vars to follow your theme tokens */
   --bs-table-bg: transparent;
+  --bs-table-color: var(--text);
+  --bs-table-border-color: var(--border);
   --bs-table-striped-bg: transparent;
-  --bs-table-active-bg: transparent;
+  --bs-table-striped-color: var(--text);
   --bs-table-hover-bg: transparent;
+  --bs-table-hover-color: var(--text);
+
+  color: var(--text) !important;
 }
 
-/* Force correct colors by theme (bulletproof, no more “random black text”) */
-[data-bs-theme='dark'] .statsTable,
-[data-bs-theme='dark'] .statsTable th,
-[data-bs-theme='dark'] .statsTable td,
-[data-bs-theme='dark'] .statsTable * {
-  color: #f1f3f5 !important;
-}
-
-[data-bs-theme='light'] .statsTable,
-[data-bs-theme='light'] .statsTable th,
-[data-bs-theme='light'] .statsTable td,
-[data-bs-theme='light'] .statsTable * {
-  color: #212529 !important;
-}
-
-/* Keep secondary text visibly secondary in both themes */
-[data-bs-theme='dark'] .statsTable .text-body-secondary,
-[data-bs-theme='dark'] .statsTable .small.text-body-secondary {
-  color: rgba(241, 243, 245, 0.75) !important;
-}
-
-[data-bs-theme='light'] .statsTable .text-body-secondary,
-[data-bs-theme='light'] .statsTable .small.text-body-secondary {
-  color: rgba(33, 37, 41, 0.65) !important;
-}
-
-/* Remove “table inserted over page” look */
 .statsTable th,
-.statsTable td {
+.statsTable td,
+.statsTable thead,
+.statsTable tbody,
+.statsTable tr {
   background: transparent !important;
+  color: var(--text) !important;
 }
 
-/* Column widths */
+/* Keep muted working with your tokens (your App.css maps .text-muted to var(--text-muted) inside app-main) :contentReference[oaicite:5]{index=5} */
+.statsTable .text-muted {
+  color: var(--text-muted) !important;
+}
+
+/* Column sizing */
 .statsLabelCol {
   width: 160px;
   white-space: nowrap;
@@ -99,21 +106,24 @@
   min-width: 170px;
 }
 
-/* Subtle row separators (not full borders) */
+/* Smaller player header text so it fits */
+.statsPlayerName {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--text) !important;
+}
+
+.statsPlayerMeta {
+  font-size: 0.85rem;
+}
+
+/* Subtle separators */
 .statsRowDivider > * {
-  border-bottom: 1px solid var(--bs-border-color) !important;
+  border-bottom: 1px solid var(--border) !important;
 }
 
 /* Section spacing */
 .statsSectionRow td {
   padding-top: 1.05rem !important;
-}
-
-/* Slightly smaller numbers / names so it fits mobile better */
-.statsTable th .fw-bold {
-  font-size: 0.95rem;
-}
-
-.statsTable td.fw-semibold {
-  font-size: 0.95rem;
 }
