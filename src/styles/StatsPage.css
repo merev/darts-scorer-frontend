@@ -31,17 +31,29 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Theme-safe table colors: always inherit from Bootstrap variables */
+/* Theme-safe table colors: force Bootstrap table vars to follow the theme */
 .statsTable {
   min-width: 520px; /* triggers scroll on small screens */
+
   background: transparent !important;
+
+  /* IMPORTANT: override Bootstrap table variables */
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--bs-body-color);
+  --bs-table-striped-bg: transparent;
+  --bs-table-striped-color: var(--bs-body-color);
+  --bs-table-active-bg: transparent;
+  --bs-table-active-color: var(--bs-body-color);
+  --bs-table-hover-bg: transparent;
+  --bs-table-hover-color: var(--bs-body-color);
+
   color: var(--bs-body-color) !important;
 }
 
 .statsTable th,
 .statsTable td {
   background: transparent !important;
-  color: var(--bs-body-color);
+  color: inherit !important;
 }
 
 /* column widths */
