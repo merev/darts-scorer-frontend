@@ -13,12 +13,13 @@
 */
 .app-main .statsPageRoot {
   margin: -1.5rem -1rem;
-  padding: 0;
+  padding: 0.75rem 0.75rem; /* subtle breathing room */
 }
 
 @media (min-width: 768px) {
   .app-main .statsPageRoot {
     margin: -2rem -2rem;
+    padding: 1rem 1.25rem; /* slightly more on desktop */
   }
 }
 

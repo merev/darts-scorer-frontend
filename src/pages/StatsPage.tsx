@@ -142,7 +142,7 @@ function StatsPage() {
   return (
     <div className="statsPageRoot">
       <div className="statsHeader">
-        <div className="statsHeaderTitle">{headerTitle}</div>
+        <div className="statsHeaderTitle">{headerTitle.toUpperCase()}</div>
         <div className="statsHeaderSubtitle text-muted">
           Select up to 4 players to compare their stats.
         </div>
@@ -162,12 +162,6 @@ function StatsPage() {
       {playersError && (
         <Alert variant="danger" className="m-0">
           Could not load players.
-        </Alert>
-      )}
-
-      {selectedIds.length === 0 && (
-        <Alert variant="info" className="m-0">
-          No players selected yet. Click <strong>Select players</strong>.
         </Alert>
       )}
 
