@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Container, Card, Table, Alert, Spinner, Badge } from 'react-bootstrap';
-import { useGames } from '../api/games';
+import { useStatsGames } from '../api/stats';
 import type { Game } from '../types/darts';
 
 function formatDate(iso: string) {
@@ -14,7 +14,7 @@ function renderPlayers(game: Game) {
 }
 
 function StatsPage() {
-  const { data: games, isLoading, isError, error } = useGames();
+  const { data: games, isLoading, isError, error } = useStatsGames(50);
 
   return (
     <Container>
@@ -89,8 +89,8 @@ function StatsPage() {
                       )}
                     </td>
                     <td>
-                    {g.winnerId
-                        ? g.players.find(p => p.id === g.winnerId)?.name || 'Unknown'
+                      {g.winnerId
+                        ? g.players.find((p) => p.id === g.winnerId)?.name || 'Unknown'
                         : '-'}
                     </td>
                   </tr>

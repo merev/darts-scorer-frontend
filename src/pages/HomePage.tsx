@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import { GiDart } from 'react-icons/gi';
-import { FaUsers, FaChartLine, FaHistory } from 'react-icons/fa';
+import { FaUsers, FaChartLine } from 'react-icons/fa';
 
 import './home.css';
 
@@ -30,19 +30,13 @@ function HomePage() {
                 </Button>
               </Col>
 
-              {/* <Col xs={12} sm="auto">
+              <Col xs={12} sm="auto">
                 <Button as={Link} to="/stats" size="lg" className="home-btn tertiary">
                   <FaChartLine className="me-2" />
                   Stats
                 </Button>
               </Col>
 
-              <Col xs={12} sm="auto">
-                <Button as={Link} to="/stats" size="lg" className="home-btn subtle">
-                  <FaHistory className="me-2" />
-                  Game history
-                </Button>
-              </Col> */}
             </Row>
           </div>
         </Container>
