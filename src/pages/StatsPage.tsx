@@ -1,6 +1,6 @@
 // src/pages/StatsPage.tsx
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Badge, Button, Card, Container, Modal, Spinner, Table } from 'react-bootstrap';
+import { Alert, Badge, Button, Modal, Spinner, Table } from 'react-bootstrap';
 import { usePlayers } from '../api/players';
 import { useStatsPlayers, type PlayerStats } from '../api/stats';
 import type { Player } from '../types/darts';
@@ -35,7 +35,6 @@ function PlayerSelectModal({
 }) {
   const [draft, setDraft] = useState<string[]>(selectedIds);
 
-  // Reset draft whenever the modal opens
   useEffect(() => {
     if (show) setDraft(selectedIds);
   }, [show, selectedIds]);
@@ -130,7 +129,6 @@ function StatsPage() {
     isError: statsError,
   } = useStatsPlayers(selectedIds);
 
-  // Ensure TS knows it’s not undefined
   const statsArr: PlayerStats[] = useMemo(() => statsArrRaw ?? [], [statsArrRaw]);
 
   const selectedPlayers = useMemo(() => {
@@ -143,157 +141,149 @@ function StatsPage() {
     selectedPlayers.length === 0 ? 'Player Stats' : `Player Stats (${selectedPlayers.length})`;
 
   return (
-    <Container className="statsPageContainer">
-      <Card className="statsCard">
-        <Card.Body className="statsCardBody">
-          <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap">
-            <div>
-              <Card.Title className="mb-1">{headerTitle}</Card.Title>
-              <div className="text-body-secondary">
-                Select up to 4 players to compare their stats.
-              </div>
-            </div>
+    <div className="statsPageRoot">
+      <div className="statsHeader">
+        <div className="statsHeaderTitle">{headerTitle}</div>
+        <div className="statsHeaderSubtitle text-body-secondary">
+          Select up to 4 players to compare their stats.
+        </div>
 
-            <div className="d-flex gap-2">
-              <Button variant="outline-secondary" onClick={() => setModalOpen(true)}>
-                Select players
-              </Button>
-              {selectedIds.length > 0 && (
-                <Button variant="outline-danger" onClick={() => setSelectedIds([])}>
-                  Clear
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {playersError && (
-            <Alert variant="danger" className="mt-3">
-              Could not load players.
-            </Alert>
-          )}
-
-          {selectedIds.length === 0 && (
-            <Alert variant="info" className="mt-3 mb-0">
-              No players selected yet. Click <strong>Select players</strong>.
-            </Alert>
-          )}
-
+        <div className="statsHeaderActions">
+          <Button variant="outline-secondary" onClick={() => setModalOpen(true)}>
+            Select players
+          </Button>
           {selectedIds.length > 0 && (
-            <>
-              {statsLoading && (
-                <div className="text-center py-4">
-                  <Spinner animation="border" role="status" />
-                  <div className="text-body-secondary mt-2">Loading stats…</div>
-                </div>
-              )}
-
-              {statsError && !statsLoading && (
-                <Alert variant="danger" className="mt-3">
-                  Could not load stats for one or more players.
-                </Alert>
-              )}
-
-              {!statsLoading && !statsError && statsArr.length > 0 && (
-                <div className="statsTableWrap mt-3">
-                  <Table className="statsTable mb-0 align-middle table-borderless text-body">
-                    <thead>
-                      <tr>
-                        <th className="text-body-secondary statsLabelCol">Period</th>
-
-                        {statsArr.map((ps) => {
-                          const winPct =
-                            ps.matchesPlayed > 0
-                              ? (ps.matchesWon / ps.matchesPlayed) * 100
-                              : 0;
-
-                          return (
-                            <th key={ps.playerId} className="statsPlayerCol">
-                              <div className="fw-bold">{ps.playerName?.toUpperCase()}</div>
-                              <div className="text-body-secondary small">
-                                {ps.matchesPlayed} matches • {formatPct(winPct)} wins
-                              </div>
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      <tr className="statsRowDivider">
-                        <td className="fw-semibold text-body-secondary">AVERAGE</td>
-                        {statsArr.map((ps) => (
-                          <td key={ps.playerId} className="fw-semibold">
-                            {ps.averageScore ? ps.averageScore.toFixed(1) : '-'}
-                          </td>
-                        ))}
-                      </tr>
-
-                      <tr className="statsSectionRow statsRowDivider">
-                        <td className="fw-semibold text-body-secondary">FINISHING</td>
-                        {statsArr.map((ps) => (
-                          <td key={ps.playerId} />
-                        ))}
-                      </tr>
-
-                      <tr className="statsRowDivider">
-                        <td className="text-body-secondary fw-semibold">TOP FINISH</td>
-                        {statsArr.map((ps) => (
-                          <td key={ps.playerId} className="fw-semibold">
-                            {ps.bestCheckout ?? '-'}
-                          </td>
-                        ))}
-                      </tr>
-
-                      <tr className="statsSectionRow statsRowDivider">
-                        <td className="fw-semibold text-body-secondary">BEST RECORDS</td>
-                        {statsArr.map((ps) => (
-                          <td key={ps.playerId} />
-                        ))}
-                      </tr>
-
-                      <tr className="statsRowDivider">
-                        <td className="text-body-secondary fw-semibold">MATCHES WON</td>
-                        {statsArr.map((ps) => (
-                          <td key={ps.playerId} className="fw-semibold">
-                            {ps.matchesWon}
-                          </td>
-                        ))}
-                      </tr>
-
-                      <tr className="statsRowDivider">
-                        <td className="text-body-secondary fw-semibold">MATCHES PLAYED</td>
-                        {statsArr.map((ps) => (
-                          <td key={ps.playerId} className="fw-semibold">
-                            {ps.matchesPlayed}
-                          </td>
-                        ))}
-                      </tr>
-
-                      <tr className="statsSectionRow statsRowDivider">
-                        <td className="fw-semibold text-body-secondary">RECORDS+</td>
-                        {statsArr.map((ps) => (
-                          <td key={ps.playerId} />
-                        ))}
-                      </tr>
-
-                      {['60+', '80+', '100+', '120+', '140+', '171', '180'].map((label) => (
-                        <tr key={label} className="statsRowDivider">
-                          <td className="text-body-secondary fw-semibold">{label}</td>
-                          {statsArr.map((ps) => (
-                            <td key={ps.playerId} className="fw-semibold">
-                              -
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                </div>
-              )}
-            </>
+            <Button variant="outline-danger" onClick={() => setSelectedIds([])}>
+              Clear
+            </Button>
           )}
-        </Card.Body>
-      </Card>
+        </div>
+      </div>
+
+      {playersError && (
+        <Alert variant="danger" className="m-0">
+          Could not load players.
+        </Alert>
+      )}
+
+      {selectedIds.length === 0 && (
+        <Alert variant="info" className="m-0">
+          No players selected yet. Click <strong>Select players</strong>.
+        </Alert>
+      )}
+
+      {selectedIds.length > 0 && (
+        <>
+          {statsLoading && (
+            <div className="statsLoading">
+              <Spinner animation="border" role="status" />
+              <div className="text-body-secondary mt-2">Loading stats…</div>
+            </div>
+          )}
+
+          {statsError && !statsLoading && (
+            <Alert variant="danger" className="m-0">
+              Could not load stats for one or more players.
+            </Alert>
+          )}
+
+          {!statsLoading && !statsError && statsArr.length > 0 && (
+            <div className="statsTableWrap">
+              <Table className="statsTable mb-0 align-middle table-borderless">
+                <thead>
+                  <tr>
+                    <th className="statsLabelCol text-body-secondary">Period</th>
+
+                    {statsArr.map((ps) => {
+                      const winPct =
+                        ps.matchesPlayed > 0 ? (ps.matchesWon / ps.matchesPlayed) * 100 : 0;
+
+                      return (
+                        <th key={ps.playerId} className="statsPlayerCol">
+                          <div className="fw-bold">{ps.playerName?.toUpperCase()}</div>
+                          <div className="text-body-secondary small">
+                            {ps.matchesPlayed} matches • {formatPct(winPct)} wins
+                          </div>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr className="statsRowDivider">
+                    <td className="fw-semibold text-body-secondary">AVERAGE</td>
+                    {statsArr.map((ps) => (
+                      <td key={ps.playerId} className="fw-semibold">
+                        {ps.averageScore ? ps.averageScore.toFixed(1) : '-'}
+                      </td>
+                    ))}
+                  </tr>
+
+                  <tr className="statsSectionRow statsRowDivider">
+                    <td className="fw-semibold text-body-secondary">FINISHING</td>
+                    {statsArr.map((ps) => (
+                      <td key={ps.playerId} />
+                    ))}
+                  </tr>
+
+                  <tr className="statsRowDivider">
+                    <td className="text-body-secondary fw-semibold">TOP FINISH</td>
+                    {statsArr.map((ps) => (
+                      <td key={ps.playerId} className="fw-semibold">
+                        {ps.bestCheckout ?? '-'}
+                      </td>
+                    ))}
+                  </tr>
+
+                  <tr className="statsSectionRow statsRowDivider">
+                    <td className="fw-semibold text-body-secondary">BEST RECORDS</td>
+                    {statsArr.map((ps) => (
+                      <td key={ps.playerId} />
+                    ))}
+                  </tr>
+
+                  <tr className="statsRowDivider">
+                    <td className="text-body-secondary fw-semibold">MATCHES WON</td>
+                    {statsArr.map((ps) => (
+                      <td key={ps.playerId} className="fw-semibold">
+                        {ps.matchesWon}
+                      </td>
+                    ))}
+                  </tr>
+
+                  <tr className="statsRowDivider">
+                    <td className="text-body-secondary fw-semibold">MATCHES PLAYED</td>
+                    {statsArr.map((ps) => (
+                      <td key={ps.playerId} className="fw-semibold">
+                        {ps.matchesPlayed}
+                      </td>
+                    ))}
+                  </tr>
+
+                  <tr className="statsSectionRow statsRowDivider">
+                    <td className="fw-semibold text-body-secondary">RECORDS+</td>
+                    {statsArr.map((ps) => (
+                      <td key={ps.playerId} />
+                    ))}
+                  </tr>
+
+                  {['60+', '80+', '100+', '120+', '140+', '171', '180'].map((label) => (
+                    <tr key={label} className="statsRowDivider">
+                      <td className="text-body-secondary fw-semibold">{label}</td>
+                      {statsArr.map((ps) => (
+                        <td key={ps.playerId} className="fw-semibold">
+                          -
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          )}
+        </>
+      )}
 
       <PlayerSelectModal
         show={modalOpen}
@@ -304,7 +294,7 @@ function StatsPage() {
         onConfirm={(ids) => setSelectedIds(ids)}
         maxPlayers={4}
       />
-    </Container>
+    </div>
   );
 }
 

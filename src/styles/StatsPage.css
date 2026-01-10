@@ -1,77 +1,119 @@
 /* src/pages/StatsPage.css */
 
-/* Make content feel like part of the page (no “card box”) */
-.statsPageContainer {
-  /* keep normal bootstrap spacing on md+, but tighter on mobile */
-  padding-left: 0;
-  padding-right: 0;
+/* Remove free space: edge-to-edge */
+.statsPageRoot {
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
-@media (min-width: 768px) {
-  .statsPageContainer {
-    padding-left: var(--bs-gutter-x, 0.75rem);
-    padding-right: var(--bs-gutter-x, 0.75rem);
-  }
+/* Slightly smaller typography overall */
+.statsPageRoot {
+  font-size: 0.92rem;
 }
 
-.statsCard {
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
+.statsHeader {
+  padding: 12px 12px 10px 12px;
 }
 
-.statsCardBody {
-  padding-left: 0;
-  padding-right: 0;
+.statsHeaderTitle {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
-/* Scroll horizontally when 3–4 players on small screens */
+.statsHeaderSubtitle {
+  margin-top: 2px;
+}
+
+.statsHeaderActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+/* Loading block without extra margins */
+.statsLoading {
+  padding: 24px 0;
+  text-align: center;
+}
+
+/* Horizontal scroll when 3–4 players */
 .statsTableWrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  padding: 0 8px 8px 8px; /* tiny breathing room, not “free space” */
 }
 
-/* Theme-safe table colors: force Bootstrap table vars to follow the theme */
+/* Table sizing + subtle separators */
 .statsTable {
-  min-width: 520px; /* triggers scroll on small screens */
-
+  min-width: 520px;
   background: transparent !important;
 
-  /* IMPORTANT: override Bootstrap table variables */
+  /* The IMPORTANT part: neutralize Bootstrap table variables */
   --bs-table-bg: transparent;
-  --bs-table-color: var(--bs-body-color);
   --bs-table-striped-bg: transparent;
-  --bs-table-striped-color: var(--bs-body-color);
   --bs-table-active-bg: transparent;
-  --bs-table-active-color: var(--bs-body-color);
   --bs-table-hover-bg: transparent;
-  --bs-table-hover-color: var(--bs-body-color);
-
-  color: var(--bs-body-color) !important;
 }
 
+/* Force correct colors by theme (bulletproof, no more “random black text”) */
+[data-bs-theme='dark'] .statsTable,
+[data-bs-theme='dark'] .statsTable th,
+[data-bs-theme='dark'] .statsTable td,
+[data-bs-theme='dark'] .statsTable * {
+  color: #f1f3f5 !important;
+}
+
+[data-bs-theme='light'] .statsTable,
+[data-bs-theme='light'] .statsTable th,
+[data-bs-theme='light'] .statsTable td,
+[data-bs-theme='light'] .statsTable * {
+  color: #212529 !important;
+}
+
+/* Keep secondary text visibly secondary in both themes */
+[data-bs-theme='dark'] .statsTable .text-body-secondary,
+[data-bs-theme='dark'] .statsTable .small.text-body-secondary {
+  color: rgba(241, 243, 245, 0.75) !important;
+}
+
+[data-bs-theme='light'] .statsTable .text-body-secondary,
+[data-bs-theme='light'] .statsTable .small.text-body-secondary {
+  color: rgba(33, 37, 41, 0.65) !important;
+}
+
+/* Remove “table inserted over page” look */
 .statsTable th,
 .statsTable td {
   background: transparent !important;
-  color: inherit !important;
 }
 
-/* column widths */
+/* Column widths */
 .statsLabelCol {
-  width: 200px;
+  width: 160px;
   white-space: nowrap;
 }
 
 .statsPlayerCol {
-  min-width: 180px;
+  min-width: 170px;
 }
 
-/* subtle separators without “table border look” */
+/* Subtle row separators (not full borders) */
 .statsRowDivider > * {
   border-bottom: 1px solid var(--bs-border-color) !important;
 }
 
-/* section header spacing */
+/* Section spacing */
 .statsSectionRow td {
-  padding-top: 1.25rem !important;
+  padding-top: 1.05rem !important;
+}
+
+/* Slightly smaller numbers / names so it fits mobile better */
+.statsTable th .fw-bold {
+  font-size: 0.95rem;
+}
+
+.statsTable td.fw-semibold {
+  font-size: 0.95rem;
 }
