@@ -1,0 +1,65 @@
+/* src/pages/StatsPage.css */
+
+/* Make content feel like part of the page (no “card box”) */
+.statsPageContainer {
+  /* keep normal bootstrap spacing on md+, but tighter on mobile */
+  padding-left: 0;
+  padding-right: 0;
+}
+
+@media (min-width: 768px) {
+  .statsPageContainer {
+    padding-left: var(--bs-gutter-x, 0.75rem);
+    padding-right: var(--bs-gutter-x, 0.75rem);
+  }
+}
+
+.statsCard {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.statsCardBody {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Scroll horizontally when 3–4 players on small screens */
+.statsTableWrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Theme-safe table colors: always inherit from Bootstrap variables */
+.statsTable {
+  min-width: 520px; /* triggers scroll on small screens */
+  background: transparent !important;
+  color: var(--bs-body-color) !important;
+}
+
+.statsTable th,
+.statsTable td {
+  background: transparent !important;
+  color: var(--bs-body-color);
+}
+
+/* column widths */
+.statsLabelCol {
+  width: 200px;
+  white-space: nowrap;
+}
+
+.statsPlayerCol {
+  min-width: 180px;
+}
+
+/* subtle separators without “table border look” */
+.statsRowDivider > * {
+  border-bottom: 1px solid var(--bs-border-color) !important;
+}
+
+/* section header spacing */
+.statsSectionRow td {
+  padding-top: 1.25rem !important;
+}

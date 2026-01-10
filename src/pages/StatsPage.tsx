@@ -1,12 +1,10 @@
-import { useMemo, useState } from 'react';
+// src/pages/StatsPage.tsx
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Badge, Button, Card, Container, Modal, Spinner, Table } from 'react-bootstrap';
 import { usePlayers } from '../api/players';
-import { useStatsPlayer } from '../api/stats';
+import { useStatsPlayers, type PlayerStats } from '../api/stats';
 import type { Player } from '../types/darts';
-
-type Selected = {
-  ids: string[];
-};
+import '../styles/StatsPage.css';
 
 function clampSelection(next: string[], max: number) {
   if (next.length <= max) return next;
@@ -37,13 +35,10 @@ function PlayerSelectModal({
 }) {
   const [draft, setDraft] = useState<string[]>(selectedIds);
 
-  // Reset draft when opening
-  // (keeps it feeling like the “new game” wizard selection UX)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useMemo(() => {
+  // Reset draft whenever the modal opens
+  useEffect(() => {
     if (show) setDraft(selectedIds);
-    return null;
-  }, [show]);
+  }, [show, selectedIds]);
 
   const toggle = (id: string) => {
     setDraft((prev) => {
@@ -63,9 +58,7 @@ function PlayerSelectModal({
 
       <Modal.Body>
         <div className="d-flex align-items-center justify-content-between mb-2">
-          <div className="text-body-secondary">
-            Choose up to {maxPlayers} players
-          </div>
+          <div className="text-body-secondary">Choose up to {maxPlayers} players</div>
           <Badge bg={selectedCount > 0 ? 'primary' : 'secondary'}>
             {selectedCount}/{maxPlayers}
           </Badge>
@@ -98,9 +91,7 @@ function PlayerSelectModal({
                   disabled={disabled}
                 >
                   <span className="fw-semibold">{p.name}</span>
-                  <span className="ms-3">
-                    {checked ? 'Selected' : disabled ? 'Max' : 'Select'}
-                  </span>
+                  <span className="ms-3">{checked ? 'Selected' : disabled ? 'Max' : 'Select'}</span>
                 </Button>
               );
             })}
@@ -129,44 +120,32 @@ function PlayerSelectModal({
 
 function StatsPage() {
   const [modalOpen, setModalOpen] = useState(false);
-  const [selected, setSelected] = useState<Selected>({ ids: [] });
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const { data: players, isLoading: playersLoading, isError: playersError } = usePlayers();
 
-  // Fetch stats for up to 4 selected players (simple + reliable).
-  const s0 = useStatsPlayer(selected.ids[0]);
-  const s1 = useStatsPlayer(selected.ids[1]);
-  const s2 = useStatsPlayer(selected.ids[2]);
-  const s3 = useStatsPlayer(selected.ids[3]);
+  const {
+    data: statsArrRaw,
+    isLoading: statsLoading,
+    isError: statsError,
+  } = useStatsPlayers(selectedIds);
 
-  const statsArr = useMemo(() => {
-    return [s0.data, s1.data, s2.data, s3.data].filter(
-      (ps): ps is NonNullable<typeof ps> => ps !== undefined
-    );
-  }, [s0.data, s1.data, s2.data, s3.data]);
-
-
-  const anyStatsLoading =
-    (selected.ids[0] && s0.isLoading) ||
-    (selected.ids[1] && s1.isLoading) ||
-    (selected.ids[2] && s2.isLoading) ||
-    (selected.ids[3] && s3.isLoading);
-
-  const anyStatsError = s0.isError || s1.isError || s2.isError || s3.isError;
+  // Ensure TS knows it’s not undefined
+  const statsArr: PlayerStats[] = useMemo(() => statsArrRaw ?? [], [statsArrRaw]);
 
   const selectedPlayers = useMemo(() => {
     if (!players) return [];
-    const map = new Map(players.map((p) => [p.id, p]));
-    return selected.ids.map((id) => map.get(id)).filter(Boolean) as Player[];
-  }, [players, selected.ids]);
+    const map = new Map(players.map((p) => [p.id, p] as const));
+    return selectedIds.map((id) => map.get(id)).filter(Boolean) as Player[];
+  }, [players, selectedIds]);
 
   const headerTitle =
     selectedPlayers.length === 0 ? 'Player Stats' : `Player Stats (${selectedPlayers.length})`;
 
   return (
-    <Container>
-      <Card>
-        <Card.Body>
+    <Container className="statsPageContainer">
+      <Card className="statsCard">
+        <Card.Body className="statsCardBody">
           <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap">
             <div>
               <Card.Title className="mb-1">{headerTitle}</Card.Title>
@@ -179,11 +158,8 @@ function StatsPage() {
               <Button variant="outline-secondary" onClick={() => setModalOpen(true)}>
                 Select players
               </Button>
-              {selected.ids.length > 0 && (
-                <Button
-                  variant="outline-danger"
-                  onClick={() => setSelected({ ids: [] })}
-                >
+              {selectedIds.length > 0 && (
+                <Button variant="outline-danger" onClick={() => setSelectedIds([])}>
                   Clear
                 </Button>
               )}
@@ -196,40 +172,34 @@ function StatsPage() {
             </Alert>
           )}
 
-          {selected.ids.length === 0 && (
+          {selectedIds.length === 0 && (
             <Alert variant="info" className="mt-3 mb-0">
               No players selected yet. Click <strong>Select players</strong>.
             </Alert>
           )}
 
-          {selected.ids.length > 0 && (
+          {selectedIds.length > 0 && (
             <>
-              {anyStatsLoading && (
+              {statsLoading && (
                 <div className="text-center py-4">
                   <Spinner animation="border" role="status" />
                   <div className="text-body-secondary mt-2">Loading stats…</div>
                 </div>
               )}
 
-              {anyStatsError && !anyStatsLoading && (
+              {statsError && !statsLoading && (
                 <Alert variant="danger" className="mt-3">
                   Could not load stats for one or more players.
                 </Alert>
               )}
 
-              {!anyStatsLoading && !anyStatsError && (
-                // Horizontal scroll container (critical for 3–4 columns on small screens)
-                <div className="mt-3" style={{ overflowX: 'auto' }}>
-                  <Table
-                    responsive={false}
-                    className="mb-0 align-middle"
-                    style={{ minWidth: 520 }} // forces horizontal scroll on small screens
-                  >
+              {!statsLoading && !statsError && statsArr.length > 0 && (
+                <div className="statsTableWrap mt-3">
+                  <Table className="statsTable mb-0 align-middle table-borderless text-body">
                     <thead>
                       <tr>
-                        <th className="text-body-secondary" style={{ width: 200 }}>
-                          Period
-                        </th>
+                        <th className="text-body-secondary statsLabelCol">Period</th>
+
                         {statsArr.map((ps) => {
                           const winPct =
                             ps.matchesPlayed > 0
@@ -237,7 +207,7 @@ function StatsPage() {
                               : 0;
 
                           return (
-                            <th key={ps.playerId} style={{ minWidth: 180 }}>
+                            <th key={ps.playerId} className="statsPlayerCol">
                               <div className="fw-bold">{ps.playerName?.toUpperCase()}</div>
                               <div className="text-body-secondary small">
                                 {ps.matchesPlayed} matches • {formatPct(winPct)} wins
@@ -249,8 +219,7 @@ function StatsPage() {
                     </thead>
 
                     <tbody>
-                      {/* Average */}
-                      <tr>
+                      <tr className="statsRowDivider">
                         <td className="fw-semibold text-body-secondary">AVERAGE</td>
                         {statsArr.map((ps) => (
                           <td key={ps.playerId} className="fw-semibold">
@@ -259,15 +228,14 @@ function StatsPage() {
                         ))}
                       </tr>
 
-                      {/* Finishing */}
-                      <tr>
-                        <td className="fw-semibold text-body-secondary pt-4">FINISHING</td>
+                      <tr className="statsSectionRow statsRowDivider">
+                        <td className="fw-semibold text-body-secondary">FINISHING</td>
                         {statsArr.map((ps) => (
-                          <td key={ps.playerId} className="pt-4" />
+                          <td key={ps.playerId} />
                         ))}
                       </tr>
 
-                      <tr>
+                      <tr className="statsRowDivider">
                         <td className="text-body-secondary fw-semibold">TOP FINISH</td>
                         {statsArr.map((ps) => (
                           <td key={ps.playerId} className="fw-semibold">
@@ -276,15 +244,14 @@ function StatsPage() {
                         ))}
                       </tr>
 
-                      {/* Best records */}
-                      <tr>
-                        <td className="fw-semibold text-body-secondary pt-4">BEST RECORDS</td>
+                      <tr className="statsSectionRow statsRowDivider">
+                        <td className="fw-semibold text-body-secondary">BEST RECORDS</td>
                         {statsArr.map((ps) => (
-                          <td key={ps.playerId} className="pt-4" />
+                          <td key={ps.playerId} />
                         ))}
                       </tr>
 
-                      <tr>
+                      <tr className="statsRowDivider">
                         <td className="text-body-secondary fw-semibold">MATCHES WON</td>
                         {statsArr.map((ps) => (
                           <td key={ps.playerId} className="fw-semibold">
@@ -293,7 +260,7 @@ function StatsPage() {
                         ))}
                       </tr>
 
-                      <tr>
+                      <tr className="statsRowDivider">
                         <td className="text-body-secondary fw-semibold">MATCHES PLAYED</td>
                         {statsArr.map((ps) => (
                           <td key={ps.playerId} className="fw-semibold">
@@ -302,70 +269,23 @@ function StatsPage() {
                         ))}
                       </tr>
 
-                      {/* Placeholder rows for the rest of the screenshot stats */}
-                      <tr>
-                        <td className="fw-semibold text-body-secondary pt-4">RECORDS+</td>
+                      <tr className="statsSectionRow statsRowDivider">
+                        <td className="fw-semibold text-body-secondary">RECORDS+</td>
                         {statsArr.map((ps) => (
-                          <td key={ps.playerId} className="pt-4" />
+                          <td key={ps.playerId} />
                         ))}
                       </tr>
 
-                      <tr>
-                        <td className="text-body-secondary fw-semibold">60+</td>
-                        {statsArr.map((ps) => (
-                          <td key={ps.playerId} className="fw-semibold">
-                            -
-                          </td>
-                        ))}
-                      </tr>
-                      <tr>
-                        <td className="text-body-secondary fw-semibold">80+</td>
-                        {statsArr.map((ps) => (
-                          <td key={ps.playerId} className="fw-semibold">
-                            -
-                          </td>
-                        ))}
-                      </tr>
-                      <tr>
-                        <td className="text-body-secondary fw-semibold">100+</td>
-                        {statsArr.map((ps) => (
-                          <td key={ps.playerId} className="fw-semibold">
-                            -
-                          </td>
-                        ))}
-                      </tr>
-                      <tr>
-                        <td className="text-body-secondary fw-semibold">120+</td>
-                        {statsArr.map((ps) => (
-                          <td key={ps.playerId} className="fw-semibold">
-                            -
-                          </td>
-                        ))}
-                      </tr>
-                      <tr>
-                        <td className="text-body-secondary fw-semibold">140+</td>
-                        {statsArr.map((ps) => (
-                          <td key={ps.playerId} className="fw-semibold">
-                            -
-                          </td>
-                        ))}
-                      </tr>
-                      <tr>
-                        <td className="text-body-secondary fw-semibold">171</td>
-                        {statsArr.map((ps) => (
-                          <td key={ps.playerId} className="fw-semibold">
-                            -
-                          </td>
-                        ))}
-                      </tr>
-                      <tr>
-                        <td className="text-body-secondary fw-semibold">180</td>
-                        {statsArr.map((ps) => (
-                          <td key={ps.playerId} className="fw-semibold">
-                            -
-                          </td>
-                        ))}
-                      </tr>
+                      {['60+', '80+', '100+', '120+', '140+', '171', '180'].map((label) => (
+                        <tr key={label} className="statsRowDivider">
+                          <td className="text-body-secondary fw-semibold">{label}</td>
+                          {statsArr.map((ps) => (
+                            <td key={ps.playerId} className="fw-semibold">
+                              -
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
                     </tbody>
                   </Table>
                 </div>
@@ -380,8 +300,8 @@ function StatsPage() {
         onHide={() => setModalOpen(false)}
         players={players}
         loading={playersLoading}
-        selectedIds={selected.ids}
-        onConfirm={(ids) => setSelected({ ids })}
+        selectedIds={selectedIds}
+        onConfirm={(ids) => setSelectedIds(ids)}
         maxPlayers={4}
       />
     </Container>
